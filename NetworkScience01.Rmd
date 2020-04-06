@@ -63,6 +63,12 @@ It is recommended to remove any rows with fewer than two reads on average.
 I haven't shown you how to do that.
 
 ```{r}
+RowsToKeep <- apply(TaraPhylaMtx, 2, mean) > 2
+TaraPhylaMtx <- TaraPhylaMtx[RowsToKeep,]
+```
+
+
+```{r}
 out <- sparcc(TaraPhylaMtx)
 ```
 
@@ -99,6 +105,7 @@ tp1 - tp0
 This took four minutes on my laptop. So in principal, running 1000 permutations (recommended) would take about an 40 minutes or I could use the multicore option. Lets proceed with this 100 permutation version for now.
 
 Here's a multicore version, if you have multiple cores on your computer you can use it and things will go faster.
+Doesn't work in RStudio Cloud.
 
 ```{r}
 # tp0 <- proc.time()
