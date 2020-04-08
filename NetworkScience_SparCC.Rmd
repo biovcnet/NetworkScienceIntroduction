@@ -5,6 +5,8 @@ output: html_notebook
 
 In this lesson we will be generating a basic statistical association network form the Tara Oceans data that we can load into cytoscape.
 
+# Installation
+
 We'll need a few packages for this tutorial. Lets load them in. If you don't have any of these, you can install them using the `install.packages` function.
 
 eg `install.packages("tidyverse")`
@@ -20,6 +22,7 @@ I commented the following lines out because I don't want to re-run them every ti
 
 This took a while on my computer, you may want to get a cup of coffee while this runs.
 
+# Loading Libraries
 
 ```{r}
 library(tidyverse)
@@ -29,8 +32,11 @@ library(otuSummary)
 pass <- function(x){x}
 ```
 
+# Gathering data
+
 First, lets dowload the Tara Oceans data from the internets.
 This data are read numbers of different phyla level bacterial and archaeal groups.
+They are 16s genes but are from shotgun metagenomic sequencing.
 
 ```{r}
 TaraPhyla <- read_tsv("https://www.ebi.ac.uk/metagenomics/api/v1/studies/MGYS00000410/pipelines/2.0/file/ERP001736_phylum_taxonomy_abundances_v2.0.tsv")
@@ -38,10 +44,9 @@ TaraPhyla <- read_tsv("https://www.ebi.ac.uk/metagenomics/api/v1/studies/MGYS000
 
 Please look over the new TaraPhyla object in your global environment. You can see that the first two columns are the Kindom and Phylum information for a bunch of bacterial and archaeal phyla. The rest of the columns are the number of reads associated with those phyla at each station. The station names are at the top.
 
-At this point, I found this torial helpful.
-https://rachaellappan.github.io/16S-analysis/correlation-between-otus-with-sparcc.html
+# Pre-processing
 
-`sparcc` expects a `matrix` with OTU columns and sample rows. We want to name the rows and columns with row and column names. Lets do this processing
+While I'm a tidy-verse fanatic and like working with data in dataframes. If you want to correlate everything vs everything, its often best to transmute our data into a data frame. 
 
 ```{r}
 TaraPhylaMtx <- TaraPhyla %>%
@@ -55,6 +60,61 @@ TaraPhylaMtx <- TaraPhyla %>%
   
 TaraPhylaMtx[1:5, 1:5] # Take a look at part of the matrix
 ```
+
+# Simple correlation analysis
+The simplist way to look for associations in data is through correlation analyis. There are some problems with applying correlations to this kind of data and we'll come back to that. For now though, lets calculate the spearman correlations on the data
+
+```{r}
+spearCor <- cor(TaraPhylaMtx, method = "spearman")
+```
+
+## Plotting the results
+
+Here is a solution from here:
+http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+```{r}
+## Helper functions
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(cormat){
+    cormat[upper.tri(cormat)] <- NA
+    return(cormat)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+
+reorder_cormat <- function(cormat){
+# Use correlation between variables as distance
+dd <- as.dist((1-cormat)/2)
+hc <- hclust(dd)
+cormat <-cormat[hc$order, hc$order]
+}
+
+spearCor_reorder <- reorder_cormat(spearCor) %>% get_upper_tri()
+
+spearCor_melt = reshape2::melt(spearCor_reorder) %>% na.omit()
+```
+
+
+
+
+```{r, fig.width= 10, fig.height = 10}
+spearCor_melt %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+# As above, but using Clr to adjust for compositionality
+STUB
+
+# Analysisis with sparcc
+
+At this point, I found this torial helpful.
+https://rachaellappan.github.io/16S-analysis/correlation-between-otus-with-sparcc.html
+
+`sparcc` expects a `matrix` with OTU columns and sample rows. We want to name the rows and columns with row and column names. Lets do this processing
+
+
 
 
 
