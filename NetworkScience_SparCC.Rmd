@@ -63,12 +63,12 @@ TaraPhylaMtx0 <- TaraPhyla %>%
 TaraPhylaMtx0[1:5, 1:5] # Take a look at part of the matrix
 ```
 
-It is is recommended to remove any rows and columns with fewer than two reads on average.
+It is is recommended to remove any species  with fewer than two reads on average.
 
 ```{r}
-SpeciesToKeep <- apply(TaraPhylaMtx, 2, mean) > 2
-SitesToKeep <- apply(TaraPhylaMtx, 1, mean) > 2
-TaraPhylaMtx <- TaraPhylaMtx0[SitesToKeep,SpeciesToKeep]
+SpeciesToKeep <- apply(TaraPhylaMtx0, 2, mean) > 2
+
+TaraPhylaMtx <- TaraPhylaMtx0[,SpeciesToKeep]
 ```
 
 # Simple correlation analysis
