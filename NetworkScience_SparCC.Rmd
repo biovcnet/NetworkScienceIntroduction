@@ -153,6 +153,13 @@ Better.
 
 ## Plotting Sparcc correlation
 
+```{r , fig.width= 10, fig.height = 10}
+plotableSparcc <- out$Cor %>% reorder_cormat %>% get_upper_tri() %>% reshape2::melt() %>% na.omit()
+
+plotableSparcc %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
 ## Calculating Sparcc Pvalues
 
 Next, we need to calculate p-values. We do that by bootstrapping the sparcc values and then calculating p-values from those. 
