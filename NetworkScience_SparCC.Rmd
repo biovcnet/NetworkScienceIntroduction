@@ -260,10 +260,10 @@ Next, we need to calculate p-values. We do that by bootstrapping the sparcc valu
 The text below bootstraps things.
 
 ```{r}
-# tp0 <- proc.time()
-# out2 <- sparccboot(TaraPhylaMtx, R = 100)
-# tp1 <- proc.time()
-# tp1 - tp0
+tp0 <- proc.time()
+out2 <- sparccboot(TaraPhylaMtx, R = 100)
+tp1 <- proc.time()
+tp1 - tp0
 ```
 
 This took four minutes on my laptop. So in principal, running 1000 permutations (recommended) would take about an 40 minutes or I could use the multicore option. Lets proceed with this 100 permutation version for now.
@@ -272,10 +272,10 @@ Here's a multicore version, if you have multiple cores on your computer you can 
 Doesn't work in RStudio Cloud.
 
 ```{r}
-tp0 <- proc.time()
-out2 <- sparccboot(TaraPhylaMtx, R = 1000, ncpus = 7)
-tp1 <- proc.time()
-tp1 - tp0
+# tp0 <- proc.time()
+# out2 <- sparccboot(TaraPhylaMtx, R = 1000, ncpus = 7)
+# tp1 <- proc.time()
+# tp1 - tp0
 ```
 elapsed 108 with 4 cores
 77 with 8 cores
@@ -415,6 +415,6 @@ AllTaraNetworkStats
 
 Now lets save everything out
 ```{r}
-write_csv(AllTaraNetworkStats, "TaraOceansAllAnalysies_p1000.csv")
+write_csv(AllTaraNetworkStats, "TaraOceansAllAnalysies_p100.csv")
 ```
 
