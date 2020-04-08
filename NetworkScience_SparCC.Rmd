@@ -273,7 +273,7 @@ Doesn't work in RStudio Cloud.
 
 ```{r}
 tp0 <- proc.time()
-out2 <- sparccboot(TaraPhylaMtx, R = 100, ncpus = 7)
+out2 <- sparccboot(TaraPhylaMtx, R = 1000, ncpus = 7)
 tp1 <- proc.time()
 tp1 - tp0
 ```
@@ -410,11 +410,11 @@ SparccP_ren <- SparccP_reVar %>% dplyr::rename(sparcc = cor, p.sparcc = p, fdr.s
 AllTaraNetworkStats <- spearRhoP_reVar %>% 
   left_join(spearRhoP_Clr_reVar, by = c("VarA", "VarB"), suffix = c(".spear", ".clr")) %>%
   left_join(SparccP_ren, by = c("VarA", "VarB"))
-join1
+AllTaraNetworkStats
 ```
 
 Now lets save everything out
 ```{r}
-write_csv(AllTaraNetworkStats, "TaraOceansAllAnalysies_p100.csv")
+write_csv(AllTaraNetworkStats, "TaraOceansAllAnalysies_p1000.csv")
 ```
 
