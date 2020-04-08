@@ -151,6 +151,10 @@ out$Cor[1:5, 1:5]
 
 Better.
 
+## Plotting Sparcc correlation
+
+## Calculating Sparcc Pvalues
+
 Next, we need to calculate p-values. We do that by bootstrapping the sparcc values and then calculating p-values from those. 
 
 The text below bootstraps things.
