@@ -146,31 +146,58 @@ spearRhoP
 fdrThresh <- 0.01 # fdr threshold
 spearOkP <- spearRhoP%>% filter(fdr < fdrThresh) 
 
-spearRhoP_plot <- spearRhoP %>% ggplot(aes(x = Var2, y = Var1, fill = rho)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + geom_point(data = spearOkP)
+spearRhoP_plot <- spearRhoP %>% ggplot(aes(x = Var2, y = Var1, fill = rho)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + geom_point(data = spearOkP, shape = 1)
 spearRhoP_plot
 ```
-
+The little circles indicate statistical significance.
 
 # As above, but using Clr to adjust for compositionality
 The centered log ratio converts relative abundance data to ratio data. Here every species is reported as the log of its ratio of the average (actually geometric average, rather than additive average) bacterium in that column
 ```{r}
 TaraPhylaMtxClr <- clr(TaraPhylaMtx)
+
 ```
 
 Then we just do spearman correlation on the clr transformed data.
 
 ```{r}
-spearCorClr <- stats::cor(TaraPhylaMtxClr, method = "spearman")
+# spearCorClr <- stats::cor(TaraPhylaMtxClr, method = "spearman")
+
+spearCorTestClr <- corr.test(TaraPhylaMtx, method = "spearman", adjust = "none")
+spearCorClr <- spearCorTestClr$r
+spearPClr <- spearCorTestClr$p
 ```
+
+Processing
+
+```{r}
+reordered_all_Clr <- reorder_cor_and_p(spearCorClr, spearPClr)
+reordered_spearCor_Clr <- reordered_all_Clr$r
+reordered_spearP_Clr <- reordered_all_Clr$p
+
+
+spearCor_processed_Clr <- reordered_spearCor_Clr  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(rho = value)
+spearP_processed_Clr <- reordered_spearP_Clr  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(p = value)
+
+# join the two data frames
+
+spearRhoP_Clr <- left_join(spearCor_processed, spearP_processed, by = c("Var1", "Var2")) %>%
+  # # remove self correlations
+  # filter(Var1 != Var2) %>% 
+  # calculate the false discovery rate to adjust for multiple p values
+  mutate(fdr = p.adjust(p, method = "BH"))
+```
+
 
 And plot the data
 
 ```{r, fig.width= 10, fig.height = 10}
-spearCorClr_toPlot <- spearCorClr %>% reorder_cormat() %>% get_upper_tri() %>% reshape2::melt() %>% na.omit()
 
-spearCorClr_plot <- spearCorClr_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+spearOkP_Clr <- spearRhoP_Clr%>% filter(fdr < fdrThresh) 
 
-spearCorClr_plot
+spearRhoPClr_plot <- spearRhoP_Clr %>% ggplot(aes(x = Var2, y = Var1, fill = rho)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + geom_point(data = spearOkP_Clr, shape = 1)
+
+spearRhoPClr_plot
 ```
 
 
@@ -222,14 +249,7 @@ Sparcc_plot <- plotableSparcc %>% ggplot(aes(x = Var2, y = Var1, fill = value)) 
 Sparcc_plot
 ```
 
-# Comparing the three correlation matrices
-```{r fig.width= 8, fig.height = 15}
-cowplot::plot_grid(
-spearCor_plot,
-spearCorClr_plot,
-Sparcc_plot , nrow = 3
-)
-```
+
 
 Certainly these look different from eachother. None seem intrinsically better just by looking at them, though.
 
@@ -240,10 +260,10 @@ Next, we need to calculate p-values. We do that by bootstrapping the sparcc valu
 The text below bootstraps things.
 
 ```{r}
-tp0 <- proc.time()
-out2 <- sparccboot(TaraPhylaMtx, R = 100)
-tp1 <- proc.time()
-tp1 - tp0
+# tp0 <- proc.time()
+# out2 <- sparccboot(TaraPhylaMtx, R = 100)
+# tp1 <- proc.time()
+# tp1 - tp0
 ```
 
 This took four minutes on my laptop. So in principal, running 1000 permutations (recommended) would take about an 40 minutes or I could use the multicore option. Lets proceed with this 100 permutation version for now.
@@ -252,10 +272,10 @@ Here's a multicore version, if you have multiple cores on your computer you can 
 Doesn't work in RStudio Cloud.
 
 ```{r}
-# tp0 <- proc.time()
-# out2 <- sparccboot(TaraPhylaMtx, R = 1000, ncpus = 7)
-# tp1 <- proc.time()
-# tp1 - tp0
+tp0 <- proc.time()
+out2 <- sparccboot(TaraPhylaMtx, R = 100, ncpus = 7)
+tp1 <- proc.time()
+tp1 - tp0
 ```
 elapsed 108 with 4 cores
 77 with 8 cores
@@ -293,6 +313,54 @@ sparCCpval[1:5, 1:5]
 
 For reasons that are unclear to me, the correlation values saved by the sparcc pval program are a little different than the ones from sparcc. We'll use these ones, for no particular reason. I've submitted an issue report here, which you can follow, in case anything happens:
 https://github.com/zdk123/SpiecEasi/issues/121
+
+## Plotting correlation matrix with fdr rates
+
+Processing
+
+```{r}
+reordered_all_sparcc <- reorder_cor_and_p(sparCCpcors, sparCCpval)
+reordered_sparccCor <- reordered_all_sparcc$r
+reordered_sparccP<- reordered_all_sparcc$p
+
+
+sparccCor_processed <- reordered_sparccCor  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(cor = value)
+sparccP_processed <- reordered_sparccP  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(p = value)
+
+# join the two data frames
+
+SparccP <- left_join(sparccCor_processed, sparccP_processed, by = c("Var1", "Var2")) %>%
+  # # remove self correlations
+  # filter(Var1 != Var2) %>% 
+  # calculate the false discovery rate to adjust for multiple p values
+  mutate(fdr = p.adjust(p, method = "BH"))
+```
+
+
+And plot the data
+
+```{r, fig.width= 10, fig.height = 10}
+
+sparccOkP <- SparccP%>% filter(fdr < fdrThresh) 
+
+SparccP_plot <- SparccP %>% ggplot(aes(x = Var2, y = Var1, fill = cor)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + geom_point(data = sparccOkP, shape = 1)
+
+SparccP_plot
+```
+
+# Comparing the three correlation matrices
+```{r fig.width= 8, fig.height = 15}
+cowplot::plot_grid(
+spearRhoP_plot,
+spearRhoPClr_plot,
+SparccP_plot , nrow = 3
+)
+```
+
+The three matreces are different, though I have some trouble saying one is objectively better than the others.
+I guess one pattern is that the speaman alone essentially has two loose modules of highly positivley connected organisms. The sparcc matrix has smaller positively connected modules.
+
+## Writing out
 
 
 Cytoscape expects the correlation matrix to be in "long" format. So each row is a pair of variables and their correlation.
