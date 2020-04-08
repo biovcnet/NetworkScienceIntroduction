@@ -31,6 +31,7 @@ library(SpiecEasi)
 library(otuSummary)
 #library(compositions) # we use this to clr transform data
 library(reshape2)
+library(psych) # for calculating regular correlations with p values
 pass <- function(x){x}
 ```
 
@@ -74,9 +75,16 @@ TaraPhylaMtx <- TaraPhylaMtx0[,SpeciesToKeep]
 # Simple correlation analysis
 The simplist way to look for associations in data is through correlation analyis. There are some problems with applying correlations to this kind of data and we'll come back to that. For now though, lets calculate the spearman correlations on the data
 
+I'm using the corr.test function from the `psych` library, because it returns p values. I'm not adjusting for multiple comparasons up front. We'll do that later.
+
 ```{r}
-spearCor <- cor(TaraPhylaMtx, method = "spearman")
+#spearCor <- cor(TaraPhylaMtx, method = "spearman")
+spearCorTest <- corr.test(TaraPhylaMtx, method = "spearman", adjust = "none")
+spearCor <- spearCorTest$r
+spearP <- spearCorTest$p
 ```
+
+Now we have a matrix of spearman correlations and a matrix of p values.
 
 ## Plotting the results
 
@@ -102,15 +110,44 @@ hc <- hclust(dd)
 cormat <-cormat[hc$order, hc$order]
 }
 
-spearCor_toPlot <- spearCor %>% reorder_cormat() %>% get_upper_tri() %>% reshape2::melt() %>% na.omit()
+reorder_cor_and_p <- function(cormat, pmat){
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+  pmat <- pmat[hc$order, hc$order]
+  list(r = cormat, p = pmat)
+}
+
+reordered_all <- reorder_cor_and_p(spearCor, spearP)
+reordered_spearCor <- reordered_all$r
+reordered_spearP <- reordered_all$p
+
+
+spearCor_processed <- reordered_spearCor  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(rho = value)
+spearP_processed <- reordered_spearP  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(p = value)
+
+# join the two data frames
+
+spearRhoP <- left_join(spearCor_processed, spearP_processed, by = c("Var1", "Var2")) %>%
+  # # remove self correlations
+  # filter(Var1 != Var2) %>% 
+  # calculate the false discovery rate to adjust for multiple p values
+  mutate(fdr = p.adjust(p, method = "BH"))
+
+spearRhoP
 ```
 
 
 
 
 ```{r, fig.width= 10, fig.height = 10}
-spearCor_plot <- spearCor_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
-spearCor_plot
+
+# Identify which pairs are "statistically significant, given our fdr threshold"
+fdrThresh <- 0.01 # fdr threshold
+spearOkP <- spearRhoP%>% filter(fdr < fdrThresh) 
+
+spearRhoP_plot <- spearRhoP %>% ggplot(aes(x = Var2, y = Var1, fill = rho)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + geom_point(data = spearOkP)
+spearRhoP_plot
 ```
 
 
