@@ -30,6 +30,7 @@ library(readxl)
 library(SpiecEasi)
 library(otuSummary)
 library(compositions) # we use this to clr transform data
+library(reshape2)
 pass <- function(x){x}
 ```
 
@@ -71,7 +72,7 @@ spearCor <- cor(TaraPhylaMtx, method = "spearman")
 
 ## Plotting the results
 
-Here is a solution from here:
+I'm using a solution from here.
 http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
 ```{r}
 ## Helper functions
@@ -93,16 +94,14 @@ hc <- hclust(dd)
 cormat <-cormat[hc$order, hc$order]
 }
 
-spearCor_reorder <- reorder_cormat(spearCor) %>% get_upper_tri()
-
-spearCor_melt = reshape2::melt(spearCor_reorder) %>% na.omit()
+spearCor_toPlot <- spearCor %>% reorder_cormat() %>% get_upper_tri() %>% reshape2::melt() %>% na.omit()
 ```
 
 
 
 
 ```{r, fig.width= 10, fig.height = 10}
-spearCor_melt %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+spearCor_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 # As above, but using Clr to adjust for compositionality
@@ -112,6 +111,20 @@ TaraPhylaMtxClr <- clr(TaraPhylaMtx)
 ```
 
 Then we just do spearman correlation on the clr transformed data.
+
+```{r}
+spearCorClr <- cor(TaraPhylaMtxClr, method = "spearman")
+```
+
+And plot the data
+
+```{r, fig.width= 10, fig.height = 10}
+spearCorClr_toPlot <- spearCorClr %>% reorder_cormat() %>% get_upper_tri() %>% reshape2::melt() %>% na.omit()
+
+spearCorClr_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
 
 # Analysisis with sparcc
 
