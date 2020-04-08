@@ -29,7 +29,7 @@ library(tidyverse)
 library(readxl)
 library(SpiecEasi)
 library(otuSummary)
-library(compositions) # we use this to clr transform data
+#library(compositions) # we use this to clr transform data
 library(reshape2)
 pass <- function(x){x}
 ```
@@ -116,7 +116,7 @@ spearCor_plot
 # As above, but using Clr to adjust for compositionality
 The centered log ratio converts relative abundance data to ratio data. Here every species is reported as the log of its ratio of the average (actually geometric average, rather than additive average) bacterium in that column
 ```{r}
-TaraPhylaMtxClr <- compositions::clr(TaraPhylaMtx)
+TaraPhylaMtxClr <- clr(TaraPhylaMtx)
 ```
 
 Then we just do spearman correlation on the clr transformed data.
