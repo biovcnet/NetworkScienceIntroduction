@@ -113,6 +113,7 @@ spearCor_plot <- spearCor_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value
 spearCor_plot
 ```
 
+
 # As above, but using Clr to adjust for compositionality
 The centered log ratio converts relative abundance data to ratio data. Here every species is reported as the log of its ratio of the average (actually geometric average, rather than additive average) bacterium in that column
 ```{r}
