@@ -5,6 +5,21 @@ output: html_notebook
 
 In this lesson we will be generating a basic statistical association network form the Tara Oceans data that we can load into cytoscape.
 
+We will generate three sets of statistics: Spearman correlations, spearman correlations on centered-log-ratio transformed data, and sparcc associations.
+
+We will first apply a simple spearman correlation. A limitation of spearman correlations is that they don't address the compositional nature of the data. 
+
+Compositional data are data where the different variables all sum to one. This paper by Lovell explains why this can be a problem.
+
+Lovell D, Pawlowsky-Glahn V, Egozcue JJ, Marguerat S, Bähler J. Proportionality: A Valid Alternative to Correlation for Relative Data. PLOS Computational Biology. 2015 Mar 16;11(3):e1004075. 
+
+Essentially changes in the abundance of one variable makes all of the other values seem to be positively correlated with eachother.
+
+To address this, we will first do a centered log ratio transform on our data, which convert them from compositions to ratios, and redo the spearman analyis.
+
+Then we will use the sparcc algorithm that is specifically designed to handle these sorts of data.
+
+
 # Installation
 
 We'll need a few packages for this tutorial. Lets load them in. If you don't have any of these, you can install them using the `install.packages` function.
@@ -25,12 +40,10 @@ This took a while on my computer, you may want to get a cup of coffee while this
 # Loading Libraries
 
 ```{r}
-library(tidyverse)
-library(readxl)
-library(SpiecEasi)
+library(tidyverse) # for plotting and wrangling data
+library(SpiecEasi) # Has sparcc and also does clr transforms
 library(otuSummary)
-#library(compositions) # we use this to clr transform data
-library(reshape2)
+library(reshape2) # has the melt function, which I use to wrangle data
 library(psych) # for calculating regular correlations with p values
 pass <- function(x){x}
 ```
@@ -38,8 +51,9 @@ pass <- function(x){x}
 # Gathering data
 
 First, lets dowload the Tara Oceans data from the internets.
-This data are read numbers of different phyla level bacterial and archaeal groups.
-They are 16s genes but are from shotgun metagenomic sequencing.
+This data are read numbers of different phyla level bacterial and archaeal groups. The data were collected from all over the world. There are exciting environmental data collected as part of tara, but we will ignore those for now.
+
+These data are read numbers of 16s genes but are from shotgun metagenomic sequencing.
 
 ```{r}
 TaraPhyla <- read_tsv("https://www.ebi.ac.uk/metagenomics/api/v1/studies/MGYS00000410/pipelines/2.0/file/ERP001736_phylum_taxonomy_abundances_v2.0.tsv")
@@ -49,7 +63,7 @@ Please look over the new TaraPhyla object in your global environment. You can se
 
 # Pre-processing
 
-While I'm a tidy-verse fanatic and like working with data in dataframes. If you want to correlate everything vs everything, its often best to transmute our data into a data frame. 
+While I'm a tidy-verse fanatic and like working with data in dataframes. If you want to correlate everything vs everything, its often necessary to transmute our data into a data frame. 
 
 ```{r}
 TaraPhylaMtx0 <- TaraPhyla %>%
@@ -86,9 +100,9 @@ spearP <- spearCorTest$p
 
 Now we have a matrix of spearman correlations and a matrix of p values.
 
-## Plotting the results
+## Processing the results
 
-I'm using a solution from here.
+I'm using a solution from here to get a nice plot.
 http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
 ```{r}
 ## Helper functions
@@ -118,27 +132,27 @@ reorder_cor_and_p <- function(cormat, pmat){
   list(r = cormat, p = pmat)
 }
 
+## Make sure that the data are ordered so that more related species are closer together.
+## Also ensure that the p values and correlations are in the same order
 reordered_all <- reorder_cor_and_p(spearCor, spearP)
 reordered_spearCor <- reordered_all$r
 reordered_spearP <- reordered_all$p
 
-
+## Just take the upper triangle of the correlation matrix, reshape it into a data frame, and improve the names of the variables
 spearCor_processed <- reordered_spearCor  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(rho = value)
 spearP_processed <- reordered_spearP  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(p = value)
 
-# join the two data frames
-
+# join the correlation and pvalue data frames
 spearRhoP <- left_join(spearCor_processed, spearP_processed, by = c("Var1", "Var2")) %>%
-  # # remove self correlations
-  # filter(Var1 != Var2) %>% 
-  # calculate the false discovery rate to adjust for multiple p values
+# calculate the false discovery rate to adjust for multiple p values
   mutate(fdr = p.adjust(p, method = "BH"))
 
 spearRhoP
 ```
 
+So there's are data that we will use later and plot.
 
-
+## Plotting the results
 
 ```{r, fig.width= 10, fig.height = 10}
 
@@ -168,7 +182,7 @@ spearCorClr <- spearCorTestClr$r
 spearPClr <- spearCorTestClr$p
 ```
 
-Processing
+## Processing
 
 ```{r}
 reordered_all_Clr <- reorder_cor_and_p(spearCorClr, spearPClr)
@@ -189,7 +203,7 @@ spearRhoP_Clr <- left_join(spearCor_processed, spearP_processed, by = c("Var1", 
 ```
 
 
-And plot the data
+## Plotting
 
 ```{r, fig.width= 10, fig.height = 10}
 
@@ -207,16 +221,8 @@ spearRhoPClr_plot
 At this point, I found this torial helpful.
 https://rachaellappan.github.io/16S-analysis/correlation-between-otus-with-sparcc.html
 
-`sparcc` expects a `matrix` with OTU columns and sample rows. We want to name the rows and columns with row and column names. Lets do this processing
-
-
-
-
-
-
-
-
-
+First, lets calculate the sparcc correlation values.
+At this point, we won't have p-values yet.
 ```{r}
 out <- sparcc(TaraPhylaMtx)
 ```
@@ -249,15 +255,11 @@ Sparcc_plot <- plotableSparcc %>% ggplot(aes(x = Var2, y = Var1, fill = value)) 
 Sparcc_plot
 ```
 
-
-
-Certainly these look different from eachother. None seem intrinsically better just by looking at them, though.
-
 ## Calculating Sparcc Pvalues
 
 Next, we need to calculate p-values. We do that by bootstrapping the sparcc values and then calculating p-values from those. 
 
-The text below bootstraps things.
+The code below bootstraps things.
 
 ```{r}
 tp0 <- proc.time()
@@ -266,10 +268,10 @@ tp1 <- proc.time()
 tp1 - tp0
 ```
 
-This took four minutes on my laptop. So in principal, running 1000 permutations (recommended) would take about an 40 minutes or I could use the multicore option. Lets proceed with this 100 permutation version for now.
+This took just over a minute on my laptop. So in principal, running 1000 permutations (recommended) would take about an 10 minutes or I could use the multicore option. Lets proceed with this 100 permutation version for now.
 
 Here's a multicore version, if you have multiple cores on your computer you can use it and things will go faster.
-Doesn't work in RStudio Cloud.
+Doesn't work in RStudio Cloud. That said, if you wan't to use the output with 1000 permutations, I've saved that out for you already as a .csv file.
 
 ```{r}
 # tp0 <- proc.time()
@@ -277,8 +279,7 @@ Doesn't work in RStudio Cloud.
 # tp1 <- proc.time()
 # tp1 - tp0
 ```
-elapsed 108 with 4 cores
-77 with 8 cores
+
 
 Then we calculate the p values form the bootstrapped values.
 
@@ -314,7 +315,7 @@ sparCCpval[1:5, 1:5]
 For reasons that are unclear to me, the correlation values saved by the sparcc pval program are a little different than the ones from sparcc. We'll use these ones, for no particular reason. I've submitted an issue report here, which you can follow, in case anything happens:
 https://github.com/zdk123/SpiecEasi/issues/121
 
-## Plotting correlation matrix with fdr rates
+## Processing the sparcc matrix and adding fdr rates
 
 Processing
 
@@ -337,7 +338,7 @@ SparccP <- left_join(sparccCor_processed, sparccP_processed, by = c("Var1", "Var
 ```
 
 
-And plot the data
+## plot the data
 
 ```{r, fig.width= 10, fig.height = 10}
 
@@ -405,6 +406,7 @@ SparccP_ren <- SparccP_reVar %>% dplyr::rename(sparcc = cor, p.sparcc = p, fdr.s
 
 ```
 
+Sticking all of the three different analyses together into one data frame
 
 ```{r}
 AllTaraNetworkStats <- spearRhoP_reVar %>% 
