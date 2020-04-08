@@ -51,7 +51,7 @@ Please look over the new TaraPhyla object in your global environment. You can se
 While I'm a tidy-verse fanatic and like working with data in dataframes. If you want to correlate everything vs everything, its often best to transmute our data into a data frame. 
 
 ```{r}
-TaraPhylaMtx <- TaraPhyla %>%
+TaraPhylaMtx0 <- TaraPhyla %>%
   select(-kingdom)  %>% # remove kingdom column
   filter(phylum != "unassigned") %>%
   mutate(phylum = make.unique(phylum)) %>% # if you don't remove "unassigned, there are two phyla with this name and you have problems without this line
@@ -60,7 +60,15 @@ TaraPhylaMtx <- TaraPhyla %>%
   t() %>% # transpose, so the OTUs are the columns and samples are the rows
   pass
   
-TaraPhylaMtx[1:5, 1:5] # Take a look at part of the matrix
+TaraPhylaMtx0[1:5, 1:5] # Take a look at part of the matrix
+```
+
+It is is recommended to remove any rows and columns with fewer than two reads on average.
+
+```{r}
+SpeciesToKeep <- apply(TaraPhylaMtx, 2, mean) > 2
+SitesToKeep <- apply(TaraPhylaMtx, 1, mean) > 2
+TaraPhylaMtx <- TaraPhylaMtx0[SitesToKeep,SpeciesToKeep]
 ```
 
 # Simple correlation analysis
@@ -101,19 +109,20 @@ spearCor_toPlot <- spearCor %>% reorder_cormat() %>% get_upper_tri() %>% reshape
 
 
 ```{r, fig.width= 10, fig.height = 10}
-spearCor_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+spearCor_plot <- spearCor_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+spearCor_plot
 ```
 
 # As above, but using Clr to adjust for compositionality
 The centered log ratio converts relative abundance data to ratio data. Here every species is reported as the log of its ratio of the average (actually geometric average, rather than additive average) bacterium in that column
 ```{r}
-TaraPhylaMtxClr <- clr(TaraPhylaMtx)
+TaraPhylaMtxClr <- compositions::clr(TaraPhylaMtx)
 ```
 
 Then we just do spearman correlation on the clr transformed data.
 
 ```{r}
-spearCorClr <- cor(TaraPhylaMtxClr, method = "spearman")
+spearCorClr <- stats::cor(TaraPhylaMtxClr, method = "spearman")
 ```
 
 And plot the data
@@ -121,7 +130,9 @@ And plot the data
 ```{r, fig.width= 10, fig.height = 10}
 spearCorClr_toPlot <- spearCorClr %>% reorder_cormat() %>% get_upper_tri() %>% reshape2::melt() %>% na.omit()
 
-spearCorClr_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+spearCorClr_plot <- spearCorClr_toPlot %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+spearCorClr_plot
 ```
 
 
@@ -138,13 +149,7 @@ https://rachaellappan.github.io/16S-analysis/correlation-between-otus-with-sparc
 
 
 
-It is recommended to remove any rows with fewer than two reads on average.
-I haven't shown you how to do that.
 
-```{r}
-RowsToKeep <- apply(TaraPhylaMtx, 2, mean) > 2
-TaraPhylaMtx <- TaraPhylaMtx[RowsToKeep,]
-```
 
 
 ```{r}
@@ -175,9 +180,20 @@ Better.
 ```{r , fig.width= 10, fig.height = 10}
 plotableSparcc <- out$Cor %>% reorder_cormat %>% get_upper_tri() %>% reshape2::melt() %>% na.omit()
 
-plotableSparcc %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+Sparcc_plot <- plotableSparcc %>% ggplot(aes(x = Var2, y = Var1, fill = value)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+Sparcc_plot
 ```
 
+# Comparing the three correlation matrices
+```{r fig.width= 8, fig.height = 15}
+cowplot::plot_grid(
+spearCor_plot,
+spearCorClr_plot,
+Sparcc_plot , nrow = 3
+)
+```
+
+Certainly these look different from eachother. None seem intrinsically better just by looking at them, though.
 
 ## Calculating Sparcc Pvalues
 
