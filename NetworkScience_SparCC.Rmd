@@ -362,19 +362,59 @@ I guess one pattern is that the speaman alone essentially has two loose modules 
 
 ## Writing out
 
+Lets write out all three sets of results.
 
-Cytoscape expects the correlation matrix to be in "long" format. So each row is a pair of variables and their correlation.
-Matrixconvert makes things long format and also only takes the lower diagonal of the matrix so we don't have duplicate values.
+A challenge is that Var1 and Var 2 are sometimes in the opposite order for the sparcc results. Lets fix things so the alphabetically first phylum is always var1
 
 ```{r}
-sparCCpcorsLong <- matrixConvert(sparCCpcors) %>%  rename(phy1 = sp1, phy2 = sp2, sparCC = dist)
-sparCCpvalLong <- matrixConvert(sparCCpval) %>%  rename(phy1 = sp1, phy2 = sp2, p = dist)
+firstVar <- function(Var1, Var2){
+  ifelse(Var1 < Var2, Var1, Var2)
+}
+
+secondVar <- function(Var1, Var2){
+  ifelse(Var1 < Var2, Var2, Var1)
+}
+
+SparccP_reVar <- SparccP %>%
+  mutate(Var1 = as.character(Var1), Var2 = as.character(Var2),
+                   VarA = map2_chr(Var1, Var2, firstVar), 
+                   VarB = map2_chr(Var1, Var2, secondVar)
+                   ) %>% 
+  select(-Var1, -Var2) %>%
+  select(VarA, VarB, everything())
+
+spearRhoP_reVar <- spearRhoP %>%
+  mutate(Var1 = as.character(Var1), Var2 = as.character(Var2),
+                   VarA = map2_chr(Var1, Var2, firstVar), 
+                   VarB = map2_chr(Var1, Var2, secondVar)
+                   ) %>% 
+  select(-Var1, -Var2) %>%
+  select(VarA, VarB, everything())
+
+spearRhoP_Clr_reVar <- spearRhoP_Clr %>%
+  mutate(Var1 = as.character(Var1), Var2 = as.character(Var2),
+                   VarA = map2_chr(Var1, Var2, firstVar), 
+                   VarB = map2_chr(Var1, Var2, secondVar)
+                   ) %>% 
+  select(-Var1, -Var2) %>%
+  select(VarA, VarB, everything())
+
+SparccP_ren <- SparccP_reVar %>% dplyr::rename(sparcc = cor, p.sparcc = p, fdr.sparcc = fdr)
+
+
+
 ```
 
-Now lets combine the data and save them out so we can load things into cytoscape.
+
 ```{r}
-toWrite <- left_join(sparCCpcorsLong, sparCCpvalLong, by = c("phy1", "phy2")) 
-toWrite %>% head
-write_csv(toWrite, "TaraOceansSparCC_p100.csv")
+AllTaraNetworkStats <- spearRhoP_reVar %>% 
+  left_join(spearRhoP_Clr_reVar, by = c("VarA", "VarB"), suffix = c(".spear", ".clr")) %>%
+  left_join(SparccP_ren, by = c("VarA", "VarB"))
+join1
+```
+
+Now lets save everything out
+```{r}
+write_csv(AllTaraNetworkStats, "TaraOceansAllAnalysies_p100.csv")
 ```
 
