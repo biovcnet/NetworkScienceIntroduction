@@ -9,11 +9,11 @@ R and RStudio
 the following packages installed
 
 ```{r}
-install.packages(tidyverse) # for plotting and wrangling data
+install.packages("tidyverse"") # for plotting and wrangling data
 
-install.packages(otuSummary)
-install.packages(reshape2) # has the melt function, which I use to wrangle data
-install.packages(psych) # for calculating regular correlations with p values
+install.packages("otuSummary"")
+install.packages("reshape2") # has the melt function, which I use to wrangle data
+install.packages("psych") # for calculating regular correlations with p values
 ```
 
 
