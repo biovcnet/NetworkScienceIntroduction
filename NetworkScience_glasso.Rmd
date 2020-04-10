@@ -132,10 +132,7 @@ plot(plot.se)
 ```
 
 Wonderful, we are truly powerful now that we can avoid building clumpy networks. Take that reviewer #2.
-Looking at the output here there are MANY fewer relationships than we saw when we built the network using correlation plots (its not usually quite this sparse... but that's what the data is saying in this case). In general, we take any non-zero relationships as significant/real (a little different than assigning a p-value, which isn't really valid after variable selection).
-
-
-
+Looking at the output here there are MANY fewer relationships than we saw when we built the network using correlation plots (its not usually quite this sparse... but that's what the data is saying in this case). In general, we take any non-zero relationships as significant/real (a little different than assigning a p-value to specific coefficients, which isn't really valid after variable selection).
 
 
 A final note, notice that if we ran: 
