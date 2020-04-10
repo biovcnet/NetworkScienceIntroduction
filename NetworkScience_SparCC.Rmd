@@ -43,7 +43,7 @@ This took a while on my computer, you may want to get a cup of coffee while this
 library(tidyverse) # for plotting and wrangling data
 library(SpiecEasi) # Has sparcc and also does clr transforms
 library(otuSummary)
-library(reshape2) # has the melt function, which I use to wrangle data
+library(reshape2) # has the melt funct  ion, which I use to wrangle data
 library(psych) # for calculating regular correlations with p values
 pass <- function(x){x}
 ```
@@ -73,6 +73,7 @@ TaraPhylaMtx0 <- TaraPhyla %>%
   column_to_rownames(var = "phylum") %>% # turn phylum into row.names of data frame
   as.matrix() %>% # transmogrify data.frame into matrix
   t() %>% # transpose, so the OTUs are the columns and samples are the rows
+  
   pass
   
 TaraPhylaMtx0[1:5, 1:5] # Take a look at part of the matrix
@@ -86,6 +87,15 @@ SpeciesToKeep <- apply(TaraPhylaMtx0, 2, mean) > 2
 TaraPhylaMtx <- TaraPhylaMtx0[,SpeciesToKeep]
 ```
 
+Also Also, lets normalize evertying to total read depth.
+
+```{r}
+TaraPhylaMtxRA <- TaraPhylaMtx1 %>% sweep(2, colSums(.), "/") # RA for relative abundance
+TaraPhylaMtx1[1:5, 1:5]
+```
+
+
+
 # Simple correlation analysis
 The simplist way to look for associations in data is through correlation analyis. There are some problems with applying correlations to this kind of data and we'll come back to that. For now though, lets calculate the spearman correlations on the data
 
@@ -93,7 +103,7 @@ I'm using the corr.test function from the `psych` library, because it returns p 
 
 ```{r}
 #spearCor <- cor(TaraPhylaMtx, method = "spearman")
-spearCorTest <- corr.test(TaraPhylaMtx, method = "spearman", adjust = "none")
+spearCorTest <- corr.test(TaraPhylaMtxRA, method = "spearman", adjust = "none")
 spearCor <- spearCorTest$r
 spearP <- spearCorTest$p
 ```
@@ -132,7 +142,7 @@ reorder_cor_and_p <- function(cormat, pmat){
   list(r = cormat, p = pmat)
 }
 
-## Make sure that the data are ordered so that more related species are closer together.
+## Make sure that the data are ordered so that more related species   are closer together.
 ## Also ensure that the p values and correlations are in the same order
 reordered_all <- reorder_cor_and_p(spearCor, spearP)
 reordered_spearCor <- reordered_all$r
@@ -157,7 +167,7 @@ So there's are data that we will use later and plot.
 ```{r, fig.width= 10, fig.height = 10}
 
 # Identify which pairs are "statistically significant, given our fdr threshold"
-fdrThresh <- 0.01 # fdr threshold
+  fdrThresh <- 0.01 # fdr threshold
 spearOkP <- spearRhoP%>% filter(fdr < fdrThresh) 
 
 spearRhoP_plot <- spearRhoP %>% ggplot(aes(x = Var2, y = Var1, fill = rho)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + geom_point(data = spearOkP, shape = 1)
@@ -177,7 +187,7 @@ Then we just do spearman correlation on the clr transformed data.
 ```{r}
 # spearCorClr <- stats::cor(TaraPhylaMtxClr, method = "spearman")
 
-spearCorTestClr <- corr.test(TaraPhylaMtx, method = "spearman", adjust = "none")
+spearCorTestClr <- corr.test(TaraPhylaMtxClr, method = "spearman", adjust = "none")
 spearCorClr <- spearCorTestClr$r
 spearPClr <- spearCorTestClr$p
 ```
@@ -195,7 +205,7 @@ spearP_processed_Clr <- reordered_spearP_Clr  %>% get_upper_tri() %>% reshape2::
 
 # join the two data frames
 
-spearRhoP_Clr <- left_join(spearCor_processed, spearP_processed, by = c("Var1", "Var2")) %>%
+spearRhoP_Clr <- left_join(spearCor_processed_Clr, spearP_processed_Clr, by = c("Var1", "Var2")) %>%
   # # remove self correlations
   # filter(Var1 != Var2) %>% 
   # calculate the false discovery rate to adjust for multiple p values
@@ -262,10 +272,10 @@ Next, we need to calculate p-values. We do that by bootstrapping the sparcc valu
 The code below bootstraps things.
 
 ```{r}
-tp0 <- proc.time()
-out2 <- sparccboot(TaraPhylaMtx, R = 100)
-tp1 <- proc.time()
-tp1 - tp0
+# tp0 <- proc.time()
+# out2 <- sparccboot(TaraPhylaMtx, R = 100)
+# tp1 <- proc.time()
+# tp1 - tp0
 ```
 
 This took just over a minute on my laptop. So in principal, running 1000 permutations (recommended) would take about an 10 minutes or I could use the multicore option. Lets proceed with this 100 permutation version for now.
@@ -274,10 +284,10 @@ Here's a multicore version, if you have multiple cores on your computer you can 
 Doesn't work in RStudio Cloud. That said, if you wan't to use the output with 1000 permutations, I've saved that out for you already as a .csv file.
 
 ```{r}
-# tp0 <- proc.time()
-# out2 <- sparccboot(TaraPhylaMtx, R = 1000, ncpus = 7)
-# tp1 <- proc.time()
-# tp1 - tp0
+tp0 <- proc.time()
+out2 <- sparccboot(TaraPhylaMtx, R = 100, ncpus = 7)
+tp1 <- proc.time()
+tp1 - tp0
 ```
 
 
