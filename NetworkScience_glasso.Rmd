@@ -1,0 +1,155 @@
+---
+title: "Network Science Lesson 2 (Graphical Lasso)"
+author: "Jake L. Weissman"
+date: "April 10, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Fair warning - much of this lesson is about WHY to use the graphical lasso (I'll say what that is in a bit), if you are just interested in HOW and you have amplicon data you want to use I'd just head directly to the tutorial on the [spieceasi github](https://github.com/zdk123/SpiecEasi). They do a much better job explaining the details of their R package then I ever will. If you are an expert in networks and have somehow ended up here - sorry if anything's wrong you should just go read the [original glasso paper](http://statweb.stanford.edu/~tibs/ftp/graph.pdf) and leave me be**
+
+## Clumpy Correlation
+
+Have you made a network using correlations before? Maybe you've gotten fancy and even applied methods to deal with compositional data like SparCC (see lesson 1). Have you ever noticed that these networks are kind of clumpy?
+
+What do I mean by clumpy? Consider three species of bacteria: *A*, *B*, and *C*. Suppose *A* secretes some molecule essential for the growth of *B*. Suppose also that *C* is a predator of *A* (maybe a [bdellovibrio](https://en.wikipedia.org/wiki/Bdellovibrio)). What is the relationship between *B* and *C*? These microbes have no direct interaction in this scenario. Nevertheless, their abundances will be correlated. Observe:
+
+```{r ABC Example}
+# Suppose A's abundance is normally distributed across samples (let's not worry about compositional data for now)
+A <- rnorm(n=100)
+# B's and C's growth are some functions of A with an error term
+B <- 0.5*A + rnorm(n=100,sd=0.1)
+# B's and C's growth are some functions of A with an error term
+C <- 0.4*A + rnorm(n=100,sd=0.2)
+
+cor.test(A,B)
+cor.test(A,C)
+cor.test(B,C)
+```
+
+*B* and *C* are extremely significantly correlated. 
+
+What does this mean for your network? It's going to be chock full o' triangles.
+
+Is this a problem? You tell me - are you interested in identifying "true" direct interactions? Do you want indirect interactions to be shown by edges in your network? In general, if you are interested in analyzing network structure these indirect interactions may be a problem.
+
+If you want to avoid including all these indirect interactions in your network, there are ways to make this happen. That's what we will be discussing in this lesson. I'm going to be glossing over a lot of a the underlying machinery here. My goal is primarily to introduce you to this issue and point you to solutions - but I strongly recommend further reading on this topic if you plan on applying these methods in your own research. At a minimum read the vignettes, READMEs, or papers associated with any R packages you use (e.g., [spieceasi](https://github.com/zdk123/SpiecEasi), [huge](https://cran.r-project.org/web/packages/huge/vignettes/vignette.pdf), [qgraph](https://www.jstatsoft.org/article/view/v048i04)). Then come to our office hours with questions!
+
+*Please note that I will be talking about the "graphical lasso" a lot here, and it will help to understand what plain old lasso regression is beforehand (though not required to run through the tutorial). If you want a really nice explanation, [Introduction to Statistical Learning](http://faculty.marshall.usc.edu/gareth-james/ISL/) is free online and has a great section on lasso regression. This is a great book for a first introduction to a lot of machine learning concepts, but also just for general modern statistics. They've even got R example code. For more advanced students check out [Elements of Statistical Learning](https://web.stanford.edu/~hastie/ElemStatLearn/).*
+
+## A Balm for Clumpy Networks - Partial Correlation and the Graphical Lasso
+
+So correlation might not work for us huh? It's not correlation's fault though. We weren't asking the right question.
+
+We asked: Are species A and B correlated?
+
+What we should ask: Are species A and B correlated, given all the other species in the community?
+
+What we are really interested in is the [partial correlation](https://en.wikipedia.org/wiki/Partial_correlation) - the correlation between A and B controlling for C.
+
+For various technical reasons we don't want to actually directly compute partial correlations between each pair of variables (see [slide 60-onward in this lecture](https://www.hcbravo.org/networks-across-scales/lectures/cmsc828o-stat_inference.pdf) if you are curious). Instead we use a method called the ["graphical lasso"](http://statweb.stanford.edu/~tibs/ftp/glasso-bio.pdf).
+
+This requires a shift in perspective:  we think of the data (or a transformation of the data) as being drawn from a multivariate normal distribution, with the structure of the inverse correlation matrix of this distribution described by your underlying network (the "graphical" part). We then try to infer this matrix. Because we want this matrix to be sparse (few connections), we penalize the number/strength of interactions in this matrix (the "lasso" part). Why do we want the network to be sparse? Well we are trying to infer many parameters with relatively few datapoints (what is sometimes called a "p > n" problem). If we assume we only need to infer some interactions, and that most species pairs don't interact, our problem becomes easier. Importantly, if you expect most species pairs in the network to interact (this is NOT the same thing as having most species in the network have at least one interaction), then the methods we discuss below will not be appropriate.
+
+Another (slightly wrong but helpful) way of thinking about the graphical lasso (hereafter the "glasso") is that we take each species X in our dataset and do a multiple regression to predict this species' abundance across samples based on the abundance of all other species. The lasso (no "g") can be thought of as a type of variable selection that only retains the best predictors. Any species that are retained in the regression are linked to X on the network. We then repeat this process for every species in the network.
+
+## The Joys of Spieceasi
+
+Ok maybe this lesson has been a lot of text and very boring until now. Let's build some networks.
+
+We are going to use a package called [spieceasi](https://github.com/zdk123/SpiecEasi) that specifically implements both the glasso AND methods for dealing with compositional data (see lesson 1). If you don't have compositional data there are several other R packages available that implement the graphical lasso without these corrections (e.g., [glasso](https://cran.r-project.org/web/packages/glasso/index.html), [huge](https://cran.r-project.org/web/packages/huge/vignettes/vignette.pdf), [qgraph](https://www.jstatsoft.org/article/view/v048i04)). The huge package is particularly helpful if you are building REALLY BIG networks.
+
+The [spieceasi github](https://github.com/zdk123/SpiecEasi) comes with it's own tutorial, which I recommend you work through if you are interested in using this package. We will apply it here to the same dataset as in lesson 1 for comparison (*as an aside - I probably wouldn't draw strong conclusions from data agggregated at the phylum level most of the time - this aggregation likely masks finer-scale interactions*)
+
+First we are going to load in the R packages required and download and process our dataset like we did in lesson 1 (see that lessons for detail on how to do installation, details about the dataset and how it is processed):
+```{r The Data, message=F}
+library(tidyverse) # for plotting and wrangling data
+library(SpiecEasi) # Has sparcc and also does clr transforms
+library(otuSummary)
+library(reshape2) # has the melt function, which I use to wrangle data
+pass <- function(x){x}
+
+TaraPhyla <- read_tsv("https://www.ebi.ac.uk/metagenomics/api/v1/studies/MGYS00000410/pipelines/2.0/file/ERP001736_phylum_taxonomy_abundances_v2.0.tsv")
+TaraPhylaMtx0 <- TaraPhyla %>%
+  select(-kingdom)  %>% # remove kingdom column
+  filter(phylum != "unassigned") %>%
+  mutate(phylum = make.unique(phylum)) %>% # if you don't remove "unassigned, there are two phyla with this name and you have problems without this line
+  column_to_rownames(var = "phylum") %>% # turn phylum into row.names of data frame
+  as.matrix() %>% # transmogrify data.frame into matrix
+  t() %>% # transpose, so the OTUs are the columns and samples are the rows
+  pass
+SpeciesToKeep <- apply(TaraPhylaMtx0, 2, mean) > 2
+TaraPhylaMtx <- TaraPhylaMtx0[,SpeciesToKeep]
+```
+
+Also please install igraph if you don't already have it and load the matrix package:
+
+```{r load igraph, message=F}
+if (!require("igraph")) install.packages("igraph")
+library(Matrix)
+```
+
+Let's take a look at our dataset:
+
+```{r ShowData, message=F}
+head(TaraPhylaMtx)
+```
+
+Ok - it's a count table... taxa in columns, samples in rows, nothing fancy.
+
+Let's try running spieceasi with the built-in glasso method (spieceasi assumes your data is compositional and will perform a centered-log-ratio transform to deal with this automatically). This will take a couple minutes for this network - and for large networks might take significant computational resources. The package has support for running on multiple cores/running on an HPC (see their tutorial). In general I've noticed that the "mb" method implemented in spieceasi (which is a decent approximation to the glasso, basically corresponding to that multiple regression "wrong" explanation I gave in the last section) is much easier to get to run when the network is really big. Our current network is small so let's just wait for glasso.
+
+```{r SpiecEasi, message=F}
+convertSEToTable <- function(se_out,sp.names){
+  #This is just a fancy helper function to get the data in a comparable format to the output of lesson 1 so we can make a similar plot. We will cover other methods for visualizing this type of output in future lessons.
+  secor <- cov2cor(as.matrix(getOptCov(se_out))) # See spieceasi documentation for how to pull out weights for comparison
+  elist     <- summary(triu(secor*getRefit(se_out), k=1))
+  elist[,1] <- sp.names[elist[,1]]
+  elist[,2] <- sp.names[elist[,2]]
+  elist[,4] <- paste(elist[,1],elist[,2])
+  full_e <- expand.grid(sp.names,sp.names)
+  rownames(full_e) <- paste(full_e[,1],full_e[,2])
+  full_e[,"Weight"] <- 0
+  full_e[elist[,4],"Weight"] <- elist[,3]
+  return(as.data.frame(full_e,stringsAsFactors=F))
+}
+
+
+se <- spiec.easi(TaraPhylaMtx, method='glasso', lambda.min.ratio=1e-2,
+                          nlambda=20, pulsar.params=list(rep.num=50))
+tab.se <- convertSEToTable(se,sp.names=colnames(TaraPhylaMtx)) #This is just a fancy helper function to get the data in a comparable format to the output of lesson 1 so we can make a similar plot. We will cover other methods for visualizing this type of output in future lessons.
+plot.se <- ggplot(tab.se,aes(x = Var1, y = Var2, fill = Weight)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+plot(plot.se)
+```
+
+Wonderful, we are truly powerful now that we can avoid building clumpy networks. Take that reviewer #2.
+Looking at the output here there are MANY fewer relationships than we saw when we built the network using correlation plots (its not usually quite this sparse... but that's what the data is saying in this case). In general, we take any non-zero relationships as significant/real (a little different than assigning a p-value though in principle you can do this as well).
+
+Notice that if we ran: 
+
+```{r SpiecEasiWarning, message=F}
+warn_se <- spiec.easi(TaraPhylaMtx, method='glasso', lambda.min.ratio=1e-2,
+                          nlambda=2, pulsar.params=list(rep.num=50))
+tab.warn <- convertSEToTable(warn_se,sp.names=colnames(TaraPhylaMtx))
+plot.warn <- ggplot(tab.warn,aes(x = Var1, y = Var2, fill = Weight)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+plot(plot.warn)
+```
+
+we get a warning message. Always read your warning messages (and treat them as if they  are errors)! There's several parameters involved in fitting in spieceasi - you want to make sure your network model was actually able to be fitted. Otherwise it's possibly just garbage (I mean... it will look like a network but might not mean anything). In this case, because the penalty parameter ends up being very high, we end up with a network with no connections. For more discussion of these parameters see the original paper and github. 
+
+## Mandatory Activities (it will show up on your permanent record if you don't do these)
+
+1. Compare the plotted output from spieceasi above to the correlation and SparCC plots from lesson 1. Do they look different? How?
+
+## Enrichment Activities (for the overachievers among you)
+
+1. See how many different ways you can break spieceasi. Do these issues show up as errors or warning messages? If warnings, how different does the output look from the "correct" output? (you can use the plotting approach from above). Whoever gets the most interesting error/warning this week wins.
+
+2. Try using the "mb" method. What does MB stand for? Does the graph look different?
+
+
+
+
