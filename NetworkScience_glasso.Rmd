@@ -114,21 +114,31 @@ convertSEToTable <- function(se_out,sp.names){
   rownames(full_e) <- paste(full_e[,1],full_e[,2])
   full_e[,"Weight"] <- 0
   full_e[elist[,4],"Weight"] <- elist[,3]
+  x <- expand.grid(1:length(sp.names),1:length(sp.names))
+  full_e[x[,"Var1"]>x[,"Var2"],"Weight"] <- NA
   return(as.data.frame(full_e,stringsAsFactors=F))
 }
 
-
+#RUN Spieceasi
 se <- spiec.easi(TaraPhylaMtx, method='glasso', lambda.min.ratio=1e-2,
                           nlambda=20, pulsar.params=list(rep.num=50))
-tab.se <- convertSEToTable(se,sp.names=colnames(TaraPhylaMtx)) #This is just a fancy helper function to get the data in a comparable format to the output of lesson 1 so we can make a similar plot. We will cover other methods for visualizing this type of output in future lessons.
+
+#This is just a fancy helper function to get the data in a comparable format to the output of lesson 1 so we can make a similar plot. We will cover other methods for visualizing this type of output in future lessons.
+tab.se <- convertSEToTable(se,sp.names=colnames(TaraPhylaMtx)) 
+
+#Plot using ggplot as in lesson 1
 plot.se <- ggplot(tab.se,aes(x = Var1, y = Var2, fill = Weight)) + geom_tile() + scale_fill_gradient2() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 plot(plot.se)
 ```
 
 Wonderful, we are truly powerful now that we can avoid building clumpy networks. Take that reviewer #2.
-Looking at the output here there are MANY fewer relationships than we saw when we built the network using correlation plots (its not usually quite this sparse... but that's what the data is saying in this case). In general, we take any non-zero relationships as significant/real (a little different than assigning a p-value though in principle you can do this as well).
+Looking at the output here there are MANY fewer relationships than we saw when we built the network using correlation plots (its not usually quite this sparse... but that's what the data is saying in this case). In general, we take any non-zero relationships as significant/real (a little different than assigning a p-value, which isn't really valid after variable selection).
 
-Notice that if we ran: 
+
+
+
+
+A final note, notice that if we ran: 
 
 ```{r SpiecEasiWarning, message=F}
 warn_se <- spiec.easi(TaraPhylaMtx, method='glasso', lambda.min.ratio=1e-2,
