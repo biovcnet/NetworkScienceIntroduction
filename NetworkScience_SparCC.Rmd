@@ -90,8 +90,8 @@ TaraPhylaMtx <- TaraPhylaMtx0[,SpeciesToKeep]
 Also Also, lets normalize evertying to total read depth.
 
 ```{r}
-TaraPhylaMtxRA <- TaraPhylaMtx1 %>% sweep(2, colSums(.), "/") # RA for relative abundance
-TaraPhylaMtx1[1:5, 1:5]
+TaraPhylaMtxRA <- TaraPhylaMtx %>% sweep(2, colSums(.), "/") # RA for relative abundance
+TaraPhylaMtxRA[1:5, 1:5]
 ```
 
 
@@ -272,10 +272,10 @@ Next, we need to calculate p-values. We do that by bootstrapping the sparcc valu
 The code below bootstraps things.
 
 ```{r}
-# tp0 <- proc.time()
-# out2 <- sparccboot(TaraPhylaMtx, R = 100)
-# tp1 <- proc.time()
-# tp1 - tp0
+tp0 <- proc.time()
+out2 <- sparccboot(TaraPhylaMtx, R = 100)
+tp1 <- proc.time()
+tp1 - tp0
 ```
 
 This took just over a minute on my laptop. So in principal, running 1000 permutations (recommended) would take about an 10 minutes or I could use the multicore option. Lets proceed with this 100 permutation version for now.
@@ -284,10 +284,10 @@ Here's a multicore version, if you have multiple cores on your computer you can 
 Doesn't work in RStudio Cloud. That said, if you wan't to use the output with 1000 permutations, I've saved that out for you already as a .csv file.
 
 ```{r}
-tp0 <- proc.time()
-out2 <- sparccboot(TaraPhylaMtx, R = 1000, ncpus = 7)
-tp1 <- proc.time()
-tp1 - tp0
+# tp0 <- proc.time()
+# out2 <- sparccboot(TaraPhylaMtx, R = 1000, ncpus = 7)
+# tp1 <- proc.time()
+# tp1 - tp0
 ```
 
 
