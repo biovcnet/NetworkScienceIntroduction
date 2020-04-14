@@ -166,8 +166,19 @@ we get a warning message. Always read your warning messages (and treat them as i
 
 # Save output data
 
+
 ```{r}
-write_csv(tab.se, "TaraOceansGLasso_out.csv")
+# Discard NA weights, from the other side of the similarity matrix
+tab.se.filtered <- tab.se %>% filter(is.finite(Weight))
+
+write_csv(tab.se.filtered, "TaraOceansGLasso_out.csv")
+```
+
+Merge this output data with the spearman and sparcc data.
+Uses a seperate script that Jacob wrote.
+
+```{r}
+source("MergeSpearmanSparccAndGlasso.R")
 ```
 
 
