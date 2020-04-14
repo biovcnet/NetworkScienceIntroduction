@@ -12,8 +12,8 @@ secondVar <- function(Var1, Var2){
 
 ## Read In Data
 
-SpearSparp100 <- read_csv("TaraOceansSpearmanSparCCAnalysis_p100.csv")
-SpearSparp1000 <- read_csv("TaraOceansSpearmanSparCCAnalysis_p1000.csv")
+SpearSparp100 <- read_csv("Analysis/TaraOceansSpearmanSparCCAnalysis_p100.csv")
+SpearSparp1000 <- read_csv("Analysis/TaraOceansSpearmanSparCCAnalysis_p1000.csv")
 Glasso <- read_csv("TaraOceansGLasso_out.csv")
 
 ## Flip variable order for Glassoo output so the alphabetically first variable always comes first
@@ -31,8 +31,8 @@ Glasso_Flip <- Glasso %>%
 SpearSparP1000Glasso <- left_join(SpearSparp1000, Glasso_Flip, by = c("VarA", "VarB"))
 SpearSparP100Glasso <- left_join(SpearSparp100, Glasso_Flip, by = c("VarA", "VarB"))
 
-write_csv(SpearSparP100Glasso, "SpearSparP100GlassoAnalysis.csv")
-write_csv(SpearSparP1000Glasso, "SpearSparP1000GlassoAnalysis.csv")
+write_csv(SpearSparP100Glasso, "Analysis/TaraOceansSpearSparP100GlassoAnalysis.csv")
+write_csv(SpearSparP1000Glasso, "Analysis/TaraOceansSpearSparP1000GlassoAnalysis.csv")
 
 
 ## Write Data Out

@@ -427,6 +427,6 @@ AllTaraNetworkStats
 
 Now lets save everything out
 ```{r}
-write_csv(AllTaraNetworkStats, "TaraOceansSpearmanSparCCAnalysis_p100.csv")
+write_csv(AllTaraNetworkStats, "Analysis/TaraOceansSpearmanSparCCAnalysis_p100.csv")
 ```
 
