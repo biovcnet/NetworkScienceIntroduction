@@ -164,6 +164,11 @@ we get a warning message. Always read your warning messages (and treat them as i
 
 2. Try using the "mb" method. What does MB stand for? Does the graph look different?
 
+# Save output data
+
+```{r}
+write_csv(tab.se, "TaraOceansGLasso_out.csv")
+```
 
 
 
