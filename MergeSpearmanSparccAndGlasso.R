@@ -14,7 +14,7 @@ secondVar <- function(Var1, Var2){
 
 SpearSparp100 <- read_csv("Analysis/TaraOceansSpearmanSparCCAnalysis_p100.csv")
 SpearSparp1000 <- read_csv("Analysis/TaraOceansSpearmanSparCCAnalysis_p1000.csv")
-Glasso <- read_csv("TaraOceansGLasso_out.csv")
+Glasso <- read_csv("Analysis/TaraOceansGLasso_out.csv")
 
 ## Flip variable order for Glassoo output so the alphabetically first variable always comes first
 
