@@ -1,0 +1,342 @@
+---
+title: "Network Science Lesson 4 (Network Visualization with iGraph)"
+author: "Jake L. Weissman"
+date: "April 25, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Today I am going to take you on a brief tour of the network visiualization capabilities of the [igraph package](https://igraph.org/r/) in R (we'll cover some simple analyses in the next lesson, igraph part II). The igraph package is large and has many functions for manipulating, visualizing, and analyzing your networks. I recommend reading the package documentation, and the many [online tutorials](https://kateto.net/networks-r-igraph) available to explore more advanced functionality. For those who prefer ggplot for their plotting needs, the [ggnetwork](https://cran.r-project.org/web/packages/ggnetwork/vignettes/ggnetwork.html) package may be helpful.
+
+Fair warning, igraph's interface is a little confusing at first. I recommend playing with your network to get a hang of it ("learning through fiddling"").
+
+## Setup (Making the Network)
+
+First we need a network to visualize. The networks we built in previous lessons are pretty boring visually, so we are going to use a different example today, taken directly from the [SpiecEasi documentation](https://github.com/zdk123/SpiecEasi). We use their american gut microbiome dataset. See [their tutorial](https://github.com/zdk123/SpiecEasi) for details about this dataset and the functions we use for network construction below. 
+
+You should already have installed SpiecEasi and igraph in previous lessons:
+
+```{r Load Packages}
+library(SpiecEasi)
+library(igraph)
+
+#Custom colorblind pallette, see: https://stackoverflow.com/questions/57153428/r-plot-color-combinations-that-are-colorblind-accessible
+customvermillion<-rgb(213/255,94/255,0/255)
+custombluegreen<-rgb(0/255,158/255,115/255)
+customblue<-rgb(0/255,114/255,178/255)
+customskyblue<-rgb(86/255,180/255,233/255)
+customreddishpurple<-rgb(204/255,121/255,167/255) 
+```
+
+We build a network using SpiecEasi. I don't really care what the species in this dataset are, so I'm going to assign them arbitrary names here (either a letter or letter.number combination like "A.1").
+
+```{r Make Network}
+## Generate network, see https://github.com/zdk123/SpiecEasi for a nice walkthrough of this process with this example
+#Load dara
+data(amgut1.filt)
+#Make up some Species "Names" since we don't care and the names aren't easily accessible in this matrix (unless you want to insall phyloseq)
+colnames(amgut1.filt) <- make.names(rep(LETTERS[1:26],5),unique = T)[1:ncol(amgut1.filt)]
+#Build network w/ spieceasi - It's gonna take a few minutes (sorry!)
+se.gl.amgut <- spiec.easi(amgut1.filt, method='glasso', lambda.min.ratio=1e-2,
+                          nlambda=20, pulsar.params=list(rep.num=50))
+```
+
+We use the getRefit() function to extract the adjacency matrix from the spieceasi output. This is a square matrix with species on rows and columns and a one if two species are connected ("adjacent") in the network and a zero otherwise.
+
+```{r Get Adjacency Matrix}
+#Extract adjacency matrix from output  - Explain ADJ MAT vs. EDGE LIST
+adj.mat <- getRefit(se.gl.amgut)
+table(as.numeric(adj.mat))
+```
+
+But we want a weighted network! No worries, we can extract the weights and make a weighted adjacency matrix as well. 
+
+```{r Get Weighted Adjacency Matrix}
+#We want weights!
+se.cor  <- cov2cor(as.matrix(getOptCov(se.gl.amgut)))
+weighted.adj.mat <- se.cor*getRefit(se.gl.amgut)
+
+#Let's take a loot at that adjacency matrix
+heatmap(as.matrix(weighted.adj.mat))
+```
+
+It is very easy to change these adjacency matrices into igraph "graph" objects. What's a graph? Well a network is a graph (look up "graph theory", it's a whole field of mathematics). Consider them synonyms.
+
+```{r Make Graphs}
+grph.unweighted <- adj2igraph(adj.mat)
+grph <- adj2igraph(weighted.adj.mat)
+```
+
+You might also find the graph_from_edgelist() and graph_from_data_frame() functions useful if you have data stored in different formats. If we are worried about self-loops or redundant edges we could also use the simplify() function to remove them (it turns the network into a "simple graph").
+
+Let's take a look at our unweighted network:
+
+```{r Plot Unweighted}
+plot(grph.unweighted,vertex.size=1,vertex.label=NA)
+```
+
+Great, now our unweighted network:
+
+```{r Plot Weighted}
+plot(grph,vertex.size=1,
+     vertex.label=NA)
+```
+
+Oh no! That looks very bad. It turns out that our graph layout algorithm isn't behaving well with negative egde weights. Let's use a different layout function for now (we will get back to this later in the lesson):
+
+```{r Plot Weighted Try Two}
+plot(grph,vertex.size=1,
+     vertex.label=NA,
+     edge.width=1,
+     layout=layout.circle(grph))
+
+```
+
+## Adding and Visualizing Metadata
+
+For those used to dealing with dataframes, the graph structure can seem pretty confusing. The two functions you need to know for now are V() and E(), which allow you to acess properties of the vertices (nodes) and edges respectively.
+
+```{r Looking at Vertices and Edges}
+V(grph)
+E(grph)
+```
+
+We can modify these features (similar to how names(df)<-c("a","b",..) allows us to assign names to a dataframe).
+
+For example, it seems spieceasi got rid of our species names when building the network, so let's put them back:
+
+```{r Fixing Names}
+V(grph)$name <- colnames(amgut1.filt)
+V(grph)
+E(grph)
+```
+
+We might also change things like vertex size or color this way. Let's make all our vertices the same color right now, and make their size proportional to their degree (number of connections):
+
+```{r Vertex Size by Degree}
+V(grph)$size <- (degree(grph) + 1) # the +1 is to avoid size zero vertices
+V(grph)$color <- "black"
+plot(grph,
+     vertex.label=NA,
+     layout=layout.circle(grph))
+```
+
+Similarly, maybe we want out edges to be colored according to whether they are positive or negative interactions, and for their widths to be proportional to their weights:
+
+```{r Edge Color by Weight}
+E(grph)$color <- custombluegreen
+E(grph)$color[E(grph)$weight<0] <- customreddishpurple
+E(grph)$width <- abs(E(grph)$weight)*10
+plot(grph,
+     vertex.label=NA,
+     layout=layout.circle(grph))
+```
+
+It looks like many of our negative interactions are very weak, and it's difficult to see these very thin lines on the plot above:
+
+```{r Edge Weights}
+plot(density((E(grph)$weight)),xlab="Edge Weight",main="")
+boxplot(abs(E(grph)$weight)~(E(grph)$weight>0),
+        xlab="Positive Interaction?",
+        ylab="Strength of Interaction")
+```
+
+We could emphasize the negative interactions by making them a bit bigger:
+
+```{r Big Negative Edges}
+E(grph)$width[E(grph)$weight<0] <- E(grph)$width[E(grph)$weight<0]*10
+plot(grph,
+     vertex.label=NA,
+     layout=layout.circle(grph))
+```
+
+## Removing Edges and Vertices
+
+Often you will want to remove sets of nodes or edges from your network. For visualization, you want to make sure your network is telling an intelligible story. If there is a lot of unimportant stuff filling up your screen it's hard to focus on the interesting stuff.
+
+For example, we can remove low-weight edges (you decide what threshold is right for your network):
+
+```{r Filter Weak Interactions}
+#Remove edges with very low weight 
+weight_threshold <- 0.01
+grph <- delete.edges(grph,which(abs(E(grph)$weight)<weight_threshold))
+```
+
+We might only be interested in positive species interactions, so we can get rid of any edges with negative weights:
+
+```{r Filter Negative Interactions}
+#Remove negative edges 
+grph.pos <- delete.edges(grph,which(E(grph)$weight<0))
+plot(grph.pos,
+     vertex.label=NA)
+```
+
+Finally, lets get rid of vertices that aren't connected to anything in the network (these don't tell us much and take up a lot of space):
+
+```{r Remove Lonely Vertices}
+#Remove unconnected vertices
+grph.pos <- delete.vertices(grph.pos,which(degree(grph.pos)<1))
+plot(grph.pos,
+     vertex.label=NA)
+```
+
+Clean it up a little (fiddle with node sizes, your color scheme, edge shape), and voila:
+
+```{r Make it Shine}
+#Cleanup a little
+V(grph.pos)$size <- V(grph.pos)$size/3
+E(grph.pos)$color <- "gray"
+plot(grph.pos,
+     vertex.label=NA,
+     edge.curved=0.5)
+```
+
+## Layouts
+
+How does igraph decide where to put the vertices of your network? It implements one of various layout algorithms to distribute nodes in space. Here's a few examples, but there are a lot of these (check out the igraph documentation). In general, I've found that either the Frutherman-Reingold or Circle layouts are the best options for 99% of my applications. You can also igraph pick with layout_nicely().
+
+```{r Some Examples}
+# Layout with fruchterman-reingold algorithm
+plot(grph.pos,
+     vertex.label=NA,
+     layout=layout_with_fr(grph.pos))
+#Layout with kamada-kawai algorithm
+plot(grph.pos,
+     vertex.label=NA,
+     layout=layout_with_kk(grph.pos))
+#layout with davidson-harel algorithm
+plot(grph.pos,
+     vertex.label=NA,
+     layout=layout_with_dh(grph.pos))
+#supposedly good for larger graphs
+plot(grph.pos,
+     vertex.label=NA,
+     layout=layout_with_lgl(grph.pos))
+```
+
+Importantly, these layout algorithms aren't typically deterministic, so each time you call them you will get a slightly different looking graph:
+
+```{r Stochastic}
+plot(grph.pos,
+     vertex.label=NA,
+     layout=layout_with_fr(grph.pos))
+```
+
+If this really bothers you, you can call your layout function once and store the resulting layout it in a variable that can be referenced repeatedly. 
+
+```{r Keep Layout Constant}
+my_unchanging_layout <- layout_with_fr(grph.pos)
+plot(grph.pos,
+     vertex.label=NA,
+     layout=my_unchanging_layout)
+```
+
+## Looking at Specific Components
+
+Sometimes we want to look at individual [components](https://en.wikipedia.org/wiki/Component_(graph_theory)) of our graph (sets of nodes connected by at least one path).
+
+It is easy to retrieve this information:
+
+```{r Components}
+graph_components <- components(grph.pos)
+graph_components
+```
+
+We can then visualize our largest component:
+
+```{r Largest Component}
+grph.largest.component <- 
+  induced.subgraph(grph.pos,V(grph.pos)[which(graph_components$membership == which.max(graph_components$csize))])
+plot(grph.largest.component,vertex.label=NA)
+```
+
+Or our second largest component (and so on):
+
+```{r Second Largest Component}
+#look at graph_components$csize to see which ID is second largest (in this case component 2)
+grph.second.largest.component <- 
+  induced.subgraph(grph.pos,V(grph.pos)[which(graph_components$membership == 2)])
+plot(grph.second.largest.component,vertex.label=NA)
+```
+
+With very big networks this can be one way to easily break-down the visualization problem.
+
+## Highlighting Sets of Nodes
+
+Say we want to highlight species "L" and all of the edges conected to it, we can do this by selecting all edges coming from the node using "E(grph.pos)[from("L")]". Here we will color them vermillion:
+
+```{r Highlight one Node and Incident Edges}
+#Change the color of vertex L
+V(grph.pos)$color[V(grph.pos)$name=="L"] <- customvermillion
+#Find attached edges
+e.L <- E(grph.pos)[from("L")]
+#Change the color of those edges
+E(grph.pos)$color[E(grph.pos) %in% e.L] <- customvermillion
+#Plot
+plot(grph.pos,vertex.label=NA)
+```
+
+Maybe we want to highlight a group of nodes? Maybe all species starting with the letter "L"? This is also relatively easy (we accomplish this using the substr() function to get the first letter, but you could format this command differently to pull out a specific genus, for instance):
+
+```{r Highlight Set of Nodes}
+#Find nodes that start with :
+L_index <- substr(V(grph.pos)$name,1,1)=="L"
+Ls <- V(grph.pos)[L_index]
+#Color them vermillion
+V(grph.pos)$color[V(grph.pos) %in% Ls] <- customvermillion
+#Find edges connected to these nodes
+e.Ls <- E(grph.pos)[from(Ls)]
+#Color them vermillion
+E(grph.pos)$color[E(grph.pos) %in% e.Ls] <- customvermillion
+#Plot
+plot(grph.pos,vertex.label=NA)
+```
+
+We might also be interested in making all of the vertices adjacent to the set of "L" vertices a specific color. We can do this using the ego() function (by increasing the order argument we can include nodes 2 or more steps away rather than just immediately adjacent nodes):
+
+```{r Highlight Neighbors}
+#Find nodes <=1 edge away from our focal set
+ego.Ls <- ego(grph.pos, order=1, nodes = Ls$name, mode = "all", mindist = 0)
+#Color these nodes blue, but not including our original set
+V(grph.pos)$color[V(grph.pos) %in% unlist(ego.Ls) & ! V(grph.pos) %in% Ls ] <- customblue
+#Plot
+plot(grph.pos,vertex.label=NA)
+```
+
+## Labels
+
+Labels are a pain. For large networks, my personal opinion is that you should not label more than a handful of nodes, otherwise it ends up being too much small text on the screen. If you must label your nodes, try offsetting labels a little with the vertex.label.dist argument, and playing with the size using vertex.label.cex:
+
+```{r Labels}
+plot(grph.pos,vertex.label.dist=0.75,
+     vertex.label.cex=0.5,
+     vertex.label.color="black")
+```
+
+Maybe you only want to show some labels (as I recommend above). One way to do this is to create a dummy metadata category with only a few labels in it: 
+
+```{r Dummy Labels}
+#Create dummy label vertex property
+V(grph.pos)$my_label <- ""
+#Only add lables for species starting with "L"
+V(grph.pos)$my_label[L_index] <- V(grph.pos)$name[L_index]
+plot(grph.pos,vertex.label=V(grph.pos)$my_label,
+     vertex.label.dist=0.75,
+     vertex.label.cex=0.5,
+     vertex.label.color="black")
+```
+
+## Very Versatile
+
+I've given you a brief intro, but the ability to assign specific values to various node/edge attributes means you can represent data in lots of fun ways. For example, maybe we want to color nodes diffferently based on the first letter of their species names (or e.g., by genus, family, phylum, etc.):
+
+```{r Rainbow}
+E(grph.pos)$color <- "black"
+V(grph.pos)$color <- rainbow(26)[as.numeric(as.factor(substr(V(grph.pos)$name,1,1)))]
+plot(grph.pos,vertex.label=NA,vertex.size=V(grph.pos)$size*3)
+```
+
+This versatility means that much of the visualization process is not automated - you will have to write at least some of the code to do many of the things you want yourself. 
