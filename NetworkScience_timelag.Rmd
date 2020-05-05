@@ -7,7 +7,10 @@ output: html_notebook
 library(tidyverse)
 library(lubridate)
 library(zoo)
+library(SpiecEasi)
+library(psych)
 ```
+# Read in
 
 Lets bring in some time-series data from the SPOT dataset. These are ARISA fragements, their lengths associate with species identity. I downloaded the data here:
 
@@ -27,10 +30,37 @@ spotSurface <- read_csv("SPOT/spot_arisa_surface.zip") %>%
   mutate(date_local = ymd(date_local))
 ```
 
+# Removing low occurance taxa
+
+How many times do we see each taxon?
+How abundant are they. 
+We filter the taxa a lot if we only keep things with a mean abundance of at least 0.5%
+```{r}
+howMany <- spotSurface %>%
+  group_by(arisa_frag) %>%
+  summarize(sightings = sum(na.omit(rel_abund > 0)),
+            meanAbun = mean(na.omit(rel_abund))) %>%
+  arrange(-sightings)
+ 
+
+keepTaxa <- howMany %>% 
+  filter(sightings >= 5, meanAbun >= 0.005) %>%
+  pull(arisa_frag)
+
+keepTaxa
+```
+
+```{r}
+spotSurface2 <- spotSurface %>% filter(arisa_frag %in% keepTaxa)
+```
+
+
+# Processing
+
 Lets reshape everything into a wide format data frame
 
 ```{r}
-spotWide <- spotSurface %>% pivot_wider(names_from = arisa_frag, values_from = rel_abund)
+spotWide <- spotSurface2 %>% pivot_wider(names_from = arisa_frag, values_from = rel_abund)
 ```
 
 There are lots of months with missing data, and lots of months that are missing but don't have rows. Lets update this so that we have a row for every month, even if it has NA values.
@@ -59,7 +89,7 @@ goalDates <- tibble(
 spotWideAllMonths <- left_join(goalDates, spotWide2)
 ```
 
-Ok. So we're going to address this missing not at random data in a way that critics might call reckless. Linearly interpolating it.
+Ok. So we're going to address this missing not at random data in a way that critics might call reckless. Linearly  interpolating it.
 ```{r}
 spotInterp <- spotWideAllMonths %>%
   mutate_at(vars(matches("ARISA")), na.approx)
@@ -75,8 +105,42 @@ spotInterp2 <- spotInterp %>%
   select(-c(yr, mth))
 ```
 
+```{r}
+spotInterpMtx <- spotInterp2 %>%
+  column_to_rownames("date_local") %>%
+  as.matrix()
+
+spotClrMtx <- clr(spotInterpMtx)
+```
+
+
+# Lags
 Ok, so with this dataset, we can do any of the things from the earlier lessons.
 We can also export it for local similarity analysis outside of R.
 
 I have no respect for my own time, so I'm going to do a simiple time lag analysis in R.
+
+Ok, lets make a new matrix, where the columns are dates, but then there are another series of columns of dates lagged by one.
+
+```{r}
+
+spotUnLag <- spotInterpMtx[-1,]
+spotLag <- spotInterpMtx[-nrow(spotInterpMtx),]
+colnames(spotUnLag) <- paste("nolag", colnames(spotUnLag), sep = "-")
+colnames(spotLag) <- paste("lag1", colnames(spotLag), sep = "-")
+spotWLag <- cbind(spotUnLag, spotLag)
+```
+
+Now we'll correlate everything vs everyting. Keep in mind that the unlagged vs unlagged are missing one row. We can ge around this by doing everything in two batches.
+
+Lets skip Sparcc for now
+```{r}
+# tp0 <- proc.time()
+# lagSparcc <- sparcc(spotWLag)
+# tp1 <- proc.time()
+# tp1 - tp0
+```
+
+# Calculating clr-spearman matrix
+
 
