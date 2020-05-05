@@ -9,6 +9,7 @@ library(lubridate)
 library(zoo)
 library(SpiecEasi)
 library(psych)
+library(igraph)
 ```
 # Read in
 
@@ -210,10 +211,33 @@ spearRhoP_lagged3
 ```
 
 And there you have a table that can go into a network.
-Some caviats. There is way more data handling do do this with sparcc, but it could be done.
+Some thoughts. There is way more data handling to do this with sparcc, but it could be done.
 I really ought to automate this into a general time delay function.
 I don't think this works for graphical lasoo but it could be tried.
 
+Autocorrelation may inflate some of these scores.
+
+Its not clear to me exactly when fdr should be calculated.
+
+```{r}
+spearRhoP_lagged4 <- spearRhoP_lagged3 %>%
+  filter(fdr < 0.05)
+spearRhoP_lagged4
+```
 
 
+# Plotting
+```{r}
+LaggedSpearGraph <- graph_from_data_frame(spearRhoP_lagged4)
+```
+
+```{r}
+LaggedSpearGraph
+```
+
+
+
+```{r}
+plot(LaggedSpearGraph,vertex.size=2)
+```
 
