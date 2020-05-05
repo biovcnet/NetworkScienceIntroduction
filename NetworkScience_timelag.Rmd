@@ -143,4 +143,77 @@ Lets skip Sparcc for now
 
 # Calculating clr-spearman matrix
 
+## Non lagged data
+
+```{r}
+spearCorTestClr <- corr.test(spotInterpMtx, method = "spearman", adjust = "none")
+spearCorClr <- spearCorTestClr$r
+spearPClr <- spearCorTestClr$p
+```
+
+
+## Lagged data
+
+```{r}
+spearCorTestClr_Lagged <- corr.test(spotWLag, method = "spearman", adjust = "none")
+spearCorClr_Lagged <- spearCorTestClr_Lagged$r
+spearPClr_Lagged <- spearCorTestClr_Lagged$p
+```
+
+```{r}
+source("jacob_library.R")
+```
+
+```{r}
+reordered_spearCorTestClr_Lagged <- reorder_cor_and_p(spearCorClr_Lagged, spearPClr_Lagged)
+spearCorClr_Lagged_Reordered <- reordered_spearCorTestClr_Lagged$r
+spearPClr_Lagged_Reordered <- reordered_spearCorTestClr_Lagged$p
+```
+
+```{r}
+spearCorClr_Lagged_Proc <- spearCorClr_Lagged_Reordered %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(rho = value)
+spearPClr_Lagged_Proc <- spearPClr_Lagged_Reordered %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(p = value)
+```
+
+```{r}
+spearRhoP_lagged <- left_join(spearCorClr_Lagged_Proc, spearPClr_Lagged_Proc, by = c("Var1", "Var2"))
+spearRhoP_lagged
+```
+
+## Parsing out the lags
+
+```{r}
+spearRhoP_lagged2 <- spearRhoP_lagged %>% 
+  separate(Var1, c("V1", "Var1"), sep = "-") %>%
+  separate(Var2, c("V2", "Var2"), sep = "-") %>%
+  # get rid of rows where both variables are laged
+  filter(!(V1 == "lag1" & V2 == "lag1")) %>%
+  filter(Var1 != Var2) %>%
+  mutate(delay = if_else(V1 == "lag1" & V2 == "nolag", -1,
+         if_else(V1 == "nolag" & V2 == "lag1", 1,
+                 if_else(V1 == "nolag" & V2 == "nolag", 0, -9999)
+         )
+  )
+  ) %>%
+  mutate(fdr =p.adjust(p, method = "BH"))
+  
+spearRhoP_lagged2 
+```
+Now we select the delay with the highest score
+
+```{r}
+spearRhoP_lagged3 <- spearRhoP_lagged2 %>%
+  group_by(Var1, Var2) %>% 
+  top_n(1, rho) %>%
+  select(-c(V1, V2))
+spearRhoP_lagged3
+```
+
+And there you have a table that can go into a network.
+Some caviats. There is way more data handling do do this with sparcc, but it could be done.
+I really ought to automate this into a general time delay function.
+I don't think this works for graphical lasoo but it could be tried.
+
+
+
 
