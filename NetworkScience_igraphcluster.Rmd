@@ -138,6 +138,7 @@ graphCol = viridis(fine)[as.numeric(cut(grph.pos_bw,breaks = fine))]
 plot(grph.pos, vertex.color=graphCol,
      vertex.label=NA,
      edge.color="black",
+     vertex.size=betweenness(grph.pos),
      layout=layout_with_fr(grph.pos))
 
 ```
