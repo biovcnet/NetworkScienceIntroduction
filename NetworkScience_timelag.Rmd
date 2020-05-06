@@ -45,7 +45,7 @@ howMany <- spotSurface %>%
  
 
 keepTaxa <- howMany %>% 
-  filter(sightings >= 5, meanAbun >= 0.005) %>%
+  filter(sightings >= 5, meanAbun >= 0.01) %>%
   pull(arisa_frag)
 
 keepTaxa
@@ -221,8 +221,12 @@ Its not clear to me exactly when fdr should be calculated.
 
 ```{r}
 spearRhoP_lagged4 <- spearRhoP_lagged3 %>%
-  filter(fdr < 0.05)
-spearRhoP_lagged4
+  filter(fdr < 0.05) %>%
+  mutate(arrow = recode(delay, `-1` = "<", `1` = ">", `0` = "-"))
+```
+
+```{r}
+#dput(spearRhoP_lagged4)
 ```
 
 
@@ -238,30 +242,8 @@ LaggedSpearGraph
 
 
 ```{r}
-plot(LaggedSpearGraph,vertex.size=2)
-```
-Jake Example
-```{r}
-df <- data.frame(Var1=c("A","A","A","B","B","C"),
-                 Var2=c("B","C","D","C","D","D"),
-                 Lag= c(1,0,-1,0,1,-1),
-                 stringsAsFactors = F)
-
-spp <- unique(c(df$Var1,df$Var2))
-
-x <- matrix(0,nrow=length(spp),ncol=length(spp))
-rownames(x) <- spp
-colnames(x) <- spp
-for(i in 1:nrow(df)){
-  if(df[i,"Lag"]==1){
-    x[df[i,"Var1"],df[i,"Var2"]] <- 1
-  } else if(df[i,"Lag"]==-1){
-    x[df[i,"Var2"],df[i,"Var1"]] <- 1
-  }
-
-}
-
-grph <- graph_from_adjacency_matrix(x)
-plot(grph)
+set.seed(333)
+plot(LaggedSpearGraph,vertex.size=2, vertex.label.cex = 0.75, edge.arrow.mode = E(LaggedSpearGraph)$arrow)
 ```
 
+Clearly, I'm not an igraph artist but you get the idea.
