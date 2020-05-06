@@ -42,7 +42,7 @@ se.gl.amgut <- spiec.easi(amgut1.filt, method='glasso', lambda.min.ratio=1e-2,
                           nlambda=20, pulsar.params=list(rep.num=50))
 ```
 
-We use the getRefit() function to extract the adjacency matrix from the spieceasi output. This is a square matrix with species on rows and columns and a one if two species are connected ("adjacent") in the network and a zero otherwise.
+We use the getRefit() function to extract the adjacency matrix from the spieceasi output. 
 
 ```{r Get Weighted Adjacency Matrix}
 #We want weights!
@@ -66,11 +66,15 @@ plot(grph,vertex.size=1,
 
 We will clean this up as wel did last lesson, however, we aren't going to make it shine like last time. For the purposes of clusering, we're going to keep it simple. We'll change our layout to the Fruchterman-Reingold layout so we can see clusters better. hhttps://igraph.org/r/doc/layout_with_fr.html
 
+We are going to remove low-weighted edges:
+
 ```{r Filter Weak Interactions}
 #Remove edges with very low weight 
 weight_threshold <- 0.01
 grph <- delete.edges(grph,which(abs(E(grph)$weight)<weight_threshold))
 ```
+
+And we will remove negative interactions. Most clustering algorithms do not account for differences in direction of the interaction (positive vs. negative). The exception to this is the SpinGlass algorithm. 
 
 ```{r Filter Negative Interactions}
 #Remove negative edges 
@@ -134,6 +138,7 @@ grph.pos_bw<-betweenness(grph.pos, directed=F)
 #this gives you the colors you want for every point
 graphCol = viridis(fine)[as.numeric(cut(grph.pos_bw,breaks = fine))]
 
+
 # now plot
 plot(grph.pos, vertex.color=graphCol,
      vertex.label=NA,
@@ -143,7 +148,7 @@ plot(grph.pos, vertex.color=graphCol,
 
 ```
 
-Our graph now has the node color rendered to reflect betweeneess centrality. In our graph, nodes with few or no paths running through them are deep purple, while nodes at the centers of denser areas with many paths running through them are bluer or yellow. 
+Our graph now has the node color and sized rendered to reflect betweeneess centrality. In our graph, nodes with few or no paths running through them are small and deep purple, while nodes at the centers of denser areas with many paths running through them are large yellow and/or blue nodes. 
 
 ###
 
@@ -189,7 +194,7 @@ In "gut_families.csv", I made the names column by examining the output of 'verte
 
 We have a negative value, meaning that our fake taxonomy doesn't play a role in node clusetring. 
 
-We can begin to identify modules/clusters/cliques in our graph by testing different clustering functions.
+We can begin to identify modules/clusters/cliques in our graph by testing different clustering functions. Igraph has a lot of clusetering options available. All of these follow the same syntax, making trying out different ones on your data very easy. 
 
 1st up: Greedy. This function implements the fast greedy modularity optimization algorithm for finding community structure, see A Clauset, MEJ Newman, C Moore: Finding community structure in very large networks, http://www.arxiv.org/abs/cond-mat/0408187 for the details.
 
@@ -202,7 +207,7 @@ sizes(grph.pos.greedy)
 Modularity tells us how good the division is, or how separatedthe different vertex types are from each other. Our value for "greedy" clustering is 0.5. 
 
 With this clustering method, there are 19 clusters found, each containing 2 through 13 nodes. 
-Let's plot this information on our graph.
+Let's plot this information on our graph:
 
 ```{r Greedy plot}
 colourCount = length(unique(grph.pos.greedy$membership)) # this will adjust the resolving power.
