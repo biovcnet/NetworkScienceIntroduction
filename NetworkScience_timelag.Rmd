@@ -1,6 +1,7 @@
 ---
-title: "R Notebook"
+title: "Time Lagged Analysis in R"
 output: html_notebook
+author: "Jacob Cram"
 ---
 
 The point of this lesson is to show that you can do a time lagged network in R, no LSA program required. This skips the "local" element of Local Similarity Analysis, but I found that in my research I was electing just to do time lagged spearman networks. Similarly, one could use this same approach to build a time lagged sparCC network or most other statistics.
@@ -137,13 +138,7 @@ spotWLag <- cbind(spotUnLag, spotLag)
 
 Now we'll correlate everything vs everyting. Keep in mind that the unlagged vs unlagged are missing one row. We could get around this by doing everything in two batches.
 
-Lets skip Sparcc for now
-```{r}
-# tp0 <- proc.time()
-# lagSparcc <- sparcc(spotWLag)
-# tp1 <- proc.time()
-# tp1 - tp0
-```
+
 
 # Calculating clr-spearman matrix
 
@@ -188,10 +183,10 @@ spearRhoP_lagged
 
 ## Parsing out the lags
 
-
-
 ```{r}
-spearRhoP_lagged2 <- spearRhoP_lagged %>% 
+wrangle_lagged <- function(preWrangled, coef = "rho"){ # I need to allow the coefficient name to change for the sparcc stuff
+  # Initial wrangling
+  postWrangled <- preWrangled %>% 
   separate(Var1, c("V1", "Var1"), sep = "-") %>%
   separate(Var2, c("V2", "Var2"), sep = "-") %>%
   # get rid of rows where both variables are laged
@@ -205,18 +200,56 @@ spearRhoP_lagged2 <- spearRhoP_lagged %>%
   ) %>%
   mutate(fdr =p.adjust(p, method = "BH"))
   
-spearRhoP_lagged2 
+# Now we select the delay with the highest score.
+# 
+# Note that we calculated the false discovery rate *before* we selected the value with the highest score, but *after* we removed the delay-vs-delay comparasons.
+  
+  bestLag <- postWrangled %>%
+  group_by(Var1, Var2) %>% 
+  top_n(1, !!as.name(coef)) %>%
+  select(-c(V1, V2))
+  
+  
+  ## Add arrows for easier igraph plotting
+  
+  arrowedData <- bestLag %>%
+  #filter(fdr < 0.05) %>%
+  mutate(arrow = recode(delay, `-1` = "<", `1` = ">", `0` = "-"))
+  
+  arrowedData
+}
+
+
+spearRhoP_lagged4<- spearRhoP_lagged %>% wrangle_lagged
+```
+
+```{r}
+# spearRhoP_lagged2 <- spearRhoP_lagged %>% 
+#   separate(Var1, c("V1", "Var1"), sep = "-") %>%
+#   separate(Var2, c("V2", "Var2"), sep = "-") %>%
+#   # get rid of rows where both variables are laged
+#   filter(!(V1 == "lag1" & V2 == "lag1")) %>%
+#   filter(Var1 != Var2) %>%
+#   mutate(delay = if_else(V1 == "lag1" & V2 == "nolag", -1,
+#          if_else(V1 == "nolag" & V2 == "lag1", 1,
+#                  if_else(V1 == "nolag" & V2 == "nolag", 0, -9999)
+#          )
+#   )
+#   ) %>%
+#   mutate(fdr =p.adjust(p, method = "BH"))
+#   
+# spearRhoP_lagged2 
 ```
 Now we select the delay with the highest score.
 
 Note that we calculated the false discovery rate *before* we selected the value with the highest score, but *after* we removed the delay-vs-delay comparasons.
 
 ```{r}
-spearRhoP_lagged3 <- spearRhoP_lagged2 %>%
-  group_by(Var1, Var2) %>% 
-  top_n(1, rho) %>%
-  select(-c(V1, V2))
-spearRhoP_lagged3
+# spearRhoP_lagged3 <- spearRhoP_lagged2 %>%
+#   group_by(Var1, Var2) %>% 
+#   top_n(1, rho) %>%
+#   select(-c(V1, V2))
+# spearRhoP_lagged3
 ```
 
 And there you have a table that can go into a network.
@@ -231,17 +264,14 @@ Autocorrelation may inflate some of these scores.
 I want a network where arrows point from leading to lagging nodes. Unlagged connections should be represented as lines.
 
 ```{r}
-spearRhoP_lagged4 <- spearRhoP_lagged3 %>%
-  filter(fdr < 0.05) %>%
-  mutate(arrow = recode(delay, `-1` = "<", `1` = ">", `0` = "-"))
+# spearRhoP_lagged4 <- spearRhoP_lagged3 %>%
+#   filter(fdr < 0.05) %>%
+#   mutate(arrow = recode(delay, `-1` = "<", `1` = ">", `0` = "-"))
 ```
 
 
 ```{r}
-LaggedSpearGraph <- graph_from_data_frame(spearRhoP_lagged4)
-```
-
-```{r}
+LaggedSpearGraph <- graph_from_data_frame(spearRhoP_lagged4 %>% filter(fdr < 0.05))
 LaggedSpearGraph
 ```
 
@@ -252,4 +282,120 @@ plot(LaggedSpearGraph,vertex.size=2, vertex.label.cex = 0.75, edge.arrow.mode = 
 
 Clearly, I'm not an igraph artist but you get the idea.
 
+# SPARCC
+As above but this time with sparcc
 
+Sparcc doesn't allow relative abundance data, it has to be counts. We can fake this with alrisa, by multiplying everything by 1000 and then rounding to the nearist
+
+spot
+```{r}
+spotWLagCounts <- round(spotWLag * 1000)
+```
+
+```{r}
+tp0 <- proc.time()
+lagSparcc <- sparcc(spotWLagCounts)
+tp1 <- proc.time()
+tp1 - tp0
+```
+
+Bootstrapping step, so we can have p values
+
+```{r}
+tp0 <- proc.time()
+bootSparcc <- sparccboot(spotWLagCounts, R = 100)
+tp1 <- proc.time()
+tp1 - tp0
+```
+Slow, of course. In real life you'd want to do at least 1000 permutations.
+
+Calculate P values
+```{r}
+PSparcc <- pval.sparccboot(bootSparcc)
+data.frame(PSparcc$cors, PSparcc$pvals)
+```
+
+Extract from the triangular matrix
+I ought to make a function to do this automatically.
+
+```{r}
+clean_Psparcc <- function(ps_mtx, cNames){
+  
+  cors <-ps_mtx$cors
+  pvals <- ps_mtx$pvals
+  
+  nVars <- length(cNames)
+  
+  # Dump the values into a rectangular matrix
+  # Empty matrix
+  sparCCpcors <- diag(0.5, nrow = nVars, ncol = nVars)
+  # Fill in upper triangle
+  sparCCpcors[upper.tri(sparCCpcors, diag=FALSE)] <- cors
+  # Fill in lower triangle
+  sparCCpcors <- sparCCpcors + t(sparCCpcors)
+  
+  # As above, but for p values
+  sparCCpval <- diag(0.5, nrow = nVars, ncol = nVars)
+  sparCCpval[upper.tri(sparCCpval, diag=FALSE)] <- pvals
+  sparCCpval <- sparCCpval + t(sparCCpval)
+  
+  rownames(sparCCpcors) <- cNames
+  colnames(sparCCpcors) <- cNames
+  rownames(sparCCpval) <- cNames
+  colnames(sparCCpval) <- cNames
+  
+  return(list(cors = sparCCpcors, p = sparCCpval))
+}
+
+cleanSparccData <- clean_Psparcc(PSparcc, colnames(spotWLag))
+```
+
+```{r}
+reshape_sparcc <- function(csparcc){
+  sparCCpcors <- csparcc$cors
+  sparCCpval <- csparcc$p
+
+reordered_all_sparcc <- reorder_cor_and_p(sparCCpcors, sparCCpval)
+reordered_sparccCor <- reordered_all_sparcc$r
+reordered_sparccP<- reordered_all_sparcc$p
+
+
+sparccCor_processed <- reordered_sparccCor  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(cor = value)
+sparccP_processed <- reordered_sparccP  %>% get_upper_tri() %>% reshape2::melt() %>% na.omit() %>% rename(p = value)
+
+# join the two data frames
+
+SparccP <- left_join(sparccCor_processed, sparccP_processed, by = c("Var1", "Var2")) #%>%
+  # # remove self correlations
+  # filter(Var1 != Var2) %>% 
+  # calculate the false discovery rate to adjust for multiple p values, not yet
+  #mutate(fdr = p.adjust(p, method = "BH"))
+SparccP
+}
+
+longLaggedSparccData <- reshape_sparcc(cleanSparccData)
+head(longLaggedSparccData)
+```
+
+So all of my p-values are coming out really high, and the strongest correlations are returning as NA
+
+```{r}
+wrangledLaggedSparccData <- wrangle_lagged(longLaggedSparccData, coef = "cor")
+wrangledLaggedSparccData
+```
+
+```{r}
+wrangledLaggedSparccData %>% pull(p)
+```
+
+```{r}
+LaggedSparccGraph <- graph_from_data_frame(wrangledLaggedSparccData %>% filter(fdr < 0.05))
+LaggedSparccGraph
+```
+
+```{r}
+set.seed(333)
+plot(LaggedSparccGraph,vertex.size=2, vertex.label.cex = 0.75, edge.arrow.mode = E(LaggedSpearGraph)$arrow, vertex.label = NA, edge.arrow.size = .5)
+```
+
+As you can see, this network looks more like mola-mola as drawn by Picasso than the spearman one, but otherwise pretty qualitatively similar.
