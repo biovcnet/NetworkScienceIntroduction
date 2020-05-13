@@ -1,0 +1,331 @@
+---
+title: "NetworkScience_igraphcluster"
+author: "Joy Buongiorno"
+date: "May 3rd, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is part 2 of our introduction to igraph. Last time, we introduced graph vizualization by using the American gut microbiome dataset included with the SpiecEasi package [SpiecEasi documentation](https://github.com/zdk123/SpiecEasi). Today, we will use those data again to recreate the networks a second time using the code from our last lesson, so a lot of the first section will be review. This time, however, we will build on this network a little. We will begin by calculating some graph statistics and then cluster vertices using a few options that are available. Finally, we will see how those clusters compare with what we may already know about our data (taxonomy). 
+
+
+## Setup (Making the Network)
+
+First we need a network to visualize. 
+
+You should already have installed SpiecEasi and igraph in previous lessons:
+
+```{r Load Packages}
+library(SpiecEasi)
+library(igraph)
+#install.packages("viridis")
+library(viridis)
+library(ggplot2)
+#install.packages("dplyr")
+library(dplyr)
+```
+
+We build a network using SpiecEasi. 
+
+Note: Later on, our names get lost and we are back to numbers. Not important for the sake of this tutorial. 
+
+```{r Make Network}
+## Generate network, see https://github.com/zdk123/SpiecEasi for a nice walkthrough of this process with this example
+#Load data
+data(amgut1.filt)
+
+#Build network w/ spieceasi - It's gonna take a few minutes (sorry!)
+se.gl.amgut <- spiec.easi(amgut1.filt, method='glasso', lambda.min.ratio=1e-2,
+                          nlambda=20, pulsar.params=list(rep.num=50))
+```
+
+We use the getRefit() function to extract the adjacency matrix from the spieceasi output. 
+
+```{r Get Weighted Adjacency Matrix}
+#We want weights!
+se.cor  <- cov2cor(as.matrix(getOptCov(se.gl.amgut)))
+weighted.adj.mat <- se.cor*getRefit(se.gl.amgut)
+```
+
+```{r Make Graph}
+grph <- adj2igraph(weighted.adj.mat)
+```
+
+You'll remember what our circular graph looked like: 
+
+```{r Plot Weighted, circular layout}
+plot(grph,vertex.size=1,
+     vertex.label=NA,
+     edge.width=1,
+     layout=layout.circle(grph))
+
+```
+
+We will clean this up as wel did last lesson, however, we aren't going to make it shine like last time. For the purposes of clusering, we're going to keep it simple. We'll change our layout to the Fruchterman-Reingold layout so we can see clusters better. hhttps://igraph.org/r/doc/layout_with_fr.html
+
+We are going to remove low-weighted edges:
+
+```{r Filter Weak Interactions}
+#Remove edges with very low weight 
+weight_threshold <- 0.01
+grph <- delete.edges(grph,which(abs(E(grph)$weight)<weight_threshold))
+```
+
+And we will remove negative interactions. Most clustering algorithms do not account for differences in direction of the interaction (positive vs. negative). The exception to this is the SpinGlass algorithm. 
+
+```{r Filter Negative Interactions}
+#Remove negative edges 
+grph.pos <- delete.edges(grph,which(E(grph)$weight<0))
+plot(grph.pos,
+     vertex.label=NA,
+     edge.color="black",
+     layout=layout_with_fr(grph.pos))
+```
+
+
+```{r Remove Lonely Vertices}
+#Remove unconnected vertices
+grph.pos <- delete.vertices(grph.pos,which(degree(grph.pos)<1))
+plot(grph.pos,
+     vertex.label=NA, 
+     edge.color="black",
+     layout=layout_with_fr(grph.pos))
+```
+
+Now, let's calculate some statistics about our graph. These statistics are often used to identify "hubs" in networks or assess how "clumpy" the network is. Identification of keystones species and other biologically-interesting hypotheses can be drawn in part from network statistics. 
+
+Berry and Widder (https://doi.org/10.3389/fmicb.2014.00219) and references therein explain one approach to using properties of co-occurrence networks to draw inferences about microbial community roles and functioning.
+
+Let's obtain the graph's degree distribution.
+
+```{r Degree distribution}
+dd.grph.pos <- degree.distribution(grph.pos)
+plot(0:(length(dd.grph.pos)-1), dd.grph.pos, type='b',
+      ylab="Frequency", xlab="Degree", main="Degree Distributions")
+```
+
+Degree is the number of edges that a node (vertex) has. 
+We see that most nodes are connected to few other nodes when consideringly only positive interactions above our weight threshold.
+
+```{r Degree rendered on graph}
+grph.pos_deg<-degree(grph.pos, v=V(grph.pos), mode="all")
+
+fine = 500 # this will adjust the resolving power.
+
+#this gives you the colors you want for every point
+graphCol = viridis(fine)[as.numeric(cut(grph.pos_deg,breaks = fine))]
+
+# now plot
+plot(grph.pos, vertex.color=graphCol,
+     edge.color="black",
+     vertex.label=NA,
+     layout=layout_with_fr(grph.pos))
+
+```
+
+We can vizually confirm the degree distribution by rendering node color on the basis of degree value. Our viridis palette runs from deep purple (low degree) to yellow (high degree). Our graph has many deep purple nodes, indicating that most of our nodes have low degree. 
+
+#####
+
+Betweeness, or betweeness centrality, is based on shortest paths. In a network, to travel from one node to another, you must pass through one or several intermediate nodes. For a weighted network such as ours, betweenness centrality is caluculated by summing the weights of edges that represent the shortest paths between nodes.
+
+```{r Betweeness rendered on graph}
+grph.pos_bw<-betweenness(grph.pos, directed=F)
+
+#this gives you the colors you want for every point
+graphCol = viridis(fine)[as.numeric(cut(grph.pos_bw,breaks = fine))]
+
+
+# now plot
+plot(grph.pos, vertex.color=graphCol,
+     vertex.label=NA,
+     edge.color="black",
+     vertex.size=betweenness(grph.pos),
+     layout=layout_with_fr(grph.pos))
+
+```
+
+Our graph now has the node color and sized rendered to reflect betweeneess centrality. In our graph, nodes with few or no paths running through them are small and deep purple, while nodes at the centers of denser areas with many paths running through them are large yellow and/or blue nodes. 
+
+###
+
+Another useful statistic is called transistivity, or the clustering coefficient. This is a measure of the probability that adjacent nodes of a particular node are connected to each other. In other words, it is the measure of how nodes tend to cluster together. 
+
+```{r Transitivity, local}
+grph.pos_tran<-transitivity(grph.pos, type="local")
+grph.pos_tran
+#this gives you the colors you want for every point
+graphCol = viridis(fine)[as.numeric(cut(grph.pos_tran,breaks = fine))]
+
+# now plot
+plot(grph.pos, vertex.color=graphCol,
+     vertex.label=NA,
+     edge.color="black",
+     layout=layout_with_fr(grph.pos))
+```
+
+Local transitivity cannot be calculated for many of our nodes (producing NaN in our results). This is because they do not meet the criteron of having two adjacent nodes. We can also calculate this statistic for the entire graph:
+
+
+```{r Transitivity, global}
+grph.pos_tran_gl<-transitivity(grph.pos, type="global")
+grph.pos_tran_gl
+```
+
+The value we get for transitivity for the entire graph is 0.73. This is the ratio of the triangles and the connected triples in the graph. 
+
+###
+
+Another graph-wide statistic that is a nice segue into modularity analysis is assortativity. The assortativity coefficient measures the level of homophyly of the graph, or how likely things of the same origin or type are to cluster together. This can be based on some vertex labeling or values assigned to vertices. We will calculate categorical (or nominal assortivity) based on labeling using made-up family taxonomic assigments for each species.
+
+The assortativity coefficient is positive if similar vertices (based on some external property) tend to connect to each other, and negative otherwise. If the coefficient is high, that means that connected vertices tend to have the same labels or similar assigned values. (https://igraph.org/r/doc/assortativity.html)
+
+
+```{r Reading in taxonomic classifications}
+fams<-read.csv("gut_families.csv")
+
+assortativity.nominal(grph.pos, as.integer(fams$Family), directed=F)
+```
+vertex_attr(grph.pos, index = V(grph.pos))
+In "gut_families.csv", I made the names column by examining the output of 'vertex_attr(grph.pos, index = V(grph.pos)) to see which rows survived our culling process. 
+
+We have a negative value, meaning that our fake taxonomy doesn't play a role in node clusetring. 
+
+We can begin to identify modules/clusters/cliques in our graph by testing different clustering functions. Igraph has a lot of clusetering options available. All of these follow the same syntax, making trying out different ones on your data very easy. 
+
+1st up: Greedy. This function implements the fast greedy modularity optimization algorithm for finding community structure, see A Clauset, MEJ Newman, C Moore: Finding community structure in very large networks, http://www.arxiv.org/abs/cond-mat/0408187 for the details.
+
+```{r Identify cliques using greedy clustering methods}
+grph.pos.greedy <- cluster_fast_greedy(grph.pos, weights=E(grph.pos)$weight)
+modularity(grph.pos.greedy)
+sizes(grph.pos.greedy)
+```
+
+Modularity tells us how good the division is, or how separatedthe different vertex types are from each other. Our value for "greedy" clustering is 0.5. 
+
+With this clustering method, there are 19 clusters found, each containing 2 through 13 nodes. 
+Let's plot this information on our graph:
+
+```{r Greedy plot}
+colourCount = length(unique(grph.pos.greedy$membership)) # this will adjust the resolving power.
+
+cluster_col = rainbow(colourCount)[as.numeric(cut(grph.pos.greedy$membership,breaks = colourCount))]
+
+# now plot
+plot(grph.pos, vertex.color=cluster_col,
+     vertex.label=NA,
+     edge.color="black",
+     layout=layout_with_fr(grph.pos))
+```
+
+
+The nodes in the graph are rendered by cluser membership.
+
+Let's try another clusering method, called Louvain. This is an unsupervised two-step method for community detection. There's a nice explanation here: https://towardsdatascience.com/louvain-algorithm-93fde589f58c
+
+```{r Identify cliques using Lauvain clustering methods}
+grph.pos.louvain <- cluster_louvain(grph.pos, weights=E(grph.pos)$weight)
+modularity(grph.pos.louvain)
+sizes(grph.pos.louvain)
+```
+
+The modularity score is about the same. We have the same number of clusters as before.
+
+```{r Louvain plot, grph.pos}
+colourCount = length(unique(grph.pos.louvain$membership)) # this will adjust the resolving power.
+
+cluster_col = rainbow(colourCount)[as.numeric(cut(grph.pos.louvain$membership,breaks = colourCount))]
+
+# now plot
+plot(grph.pos, vertex.color=cluster_col,
+     vertex.label=NA,
+     edge.color="black",
+     layout=layout_with_fr(grph.pos))
+```
+
+The results are pretty intuitive. Even without sophistocated algorithms, we could see there are several unconnected components of the network after we remove negative associations and low weight edges. What if we were to use the pre-culled, positive matrix?
+
+```{r Louvain on whole dataset}
+grph_whole <- adj2igraph(weighted.adj.mat)
+grph_whole<-delete.edges(grph_whole,which(E(grph_whole)$weight<0))
+grph.whole.louvain <- cluster_louvain(grph_whole, weights=E(grph_whole)$weight)
+modularity(grph.whole.louvain)
+sizes(grph.whole.louvain)
+```
+
+This gives us 63 clusters!! Geez
+```{r Louvain plot, grph_whole}
+colourCount = length(unique(grph.whole.louvain$membership)) # this will adjust the resolving power.
+
+cluster_col = rainbow(colourCount)[as.numeric(cut(grph.whole.louvain$membership,breaks = colourCount))]
+
+# now plot
+plot(grph_whole, vertex.color=cluster_col,
+     vertex.label=NA,
+     edge.color="black",
+     layout=layout_with_fr(grph_whole))
+```
+
+It looks like the clustering algorithm identified each lonley node as it's own cluster. This is why it may be more informative to remove these isolated nodes (as we did in the beginning) if you are seeking to cluster/identify communities your networks. 
+
+##
+Going back to our 'grph.pos' graph....
+Community sizes analysis shows that many of our clusters contain only two nodes. Let's ignore those. 
+
+```{r Add curated Louvain clique membership information}
+V(grph.pos)$cluster=grph.pos.louvain$membership
+vertex_attr(grph.pos, index = V(grph.pos))
+```
+
+```{r Manually filter by frequency}
+ids <- which(sizes(grph.pos.louvain)<=2)
+grph.pos.main.communities <- delete_vertices(grph.pos,which(V(grph.pos)$cluster %in% ids))
+```
+
+Let's now see what types of bacteria make up our main clusters.
+
+```{r Extract node info}
+nodes <- V(grph.pos.main.communities)$name
+nodes
+```
+#Our species names are numbers for the sake of this exercise. We have 66 species. 
+
+```{r Map cluster ID and taxonomy to node name}
+cluster_id <- V(grph.pos.main.communities)$cluster
+nodes<-as.data.frame(cbind(nodes, cluster_id))
+
+colnames(nodes)<-c("Species","Louvain Cluster")
+nodes<-left_join(nodes, fams, by="Species")
+nodes
+```
+
+``` {r How taxonomy falls across clusters}
+Family_breakdown<-table(nodes$Family,nodes$`Louvain Cluster`) 
+Family_breakdown<-as.data.frame(Family_breakdown)
+
+
+ggplot(Family_breakdown) +
+  geom_bar(aes(x = Var2, y = Freq, fill = Var1), stat = 'identity', width = 0.5) +
+  labs(x = "Louvain cluster",
+       y = "Count") +
+  guides(fill=guide_legend(title="Family")) +
+  scale_fill_manual(values = c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+                       "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#661100", "#44AA99")) +
+  theme_bw() +
+  theme(panel.grid.major = element_line(size = 0.2),
+        panel.grid.minor = element_line(size = 0),
+        axis.text = element_text(size=10),
+        axis.title = element_text(size=12),
+        axis.text.x = element_text(angle=90, hjust=1))
+```
+
+
+We see that cluster 3 is exclusively composed of two families (Eryipelotrichaceae and Lachnospiraceae), while other clusters, such as 5, are composed of 6 distinct families. 
+
+
+This has been fun! There are many more clustering functions avaiable in igraph. I suggested playing around with your options and taking a look at how each changes your modularity estimate. 
+Than's all for now! 
+
