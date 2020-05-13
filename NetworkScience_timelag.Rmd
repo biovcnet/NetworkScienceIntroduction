@@ -3,6 +3,11 @@ title: "R Notebook"
 output: html_notebook
 ---
 
+The point of this lesson is to show that you can do a time lagged network in R, no LSA program required. This skips the "local" element of Local Similarity Analysis, but I found that in my research I was electing just to do time lagged spearman networks. Similarly, one could use this same approach to build a time lagged sparCC network or most other statistics.
+
+This may or may not work for graphical lasso approaches.
+
+
 ```{r}
 library(tidyverse)
 library(lubridate)
@@ -119,8 +124,6 @@ spotClrMtx <- clr(spotInterpMtx)
 Ok, so with this dataset, we can do any of the things from the earlier lessons.
 We can also export it for local similarity analysis outside of R.
 
-I have no respect for my own time, so I'm going to do a simiple time lag analysis in R.
-
 Ok, lets make a new matrix, where the columns are dates, but then there are another series of columns of dates lagged by one.
 
 ```{r}
@@ -132,7 +135,7 @@ colnames(spotLag) <- paste("lag1", colnames(spotLag), sep = "-")
 spotWLag <- cbind(spotUnLag, spotLag)
 ```
 
-Now we'll correlate everything vs everyting. Keep in mind that the unlagged vs unlagged are missing one row. We can ge around this by doing everything in two batches.
+Now we'll correlate everything vs everyting. Keep in mind that the unlagged vs unlagged are missing one row. We could get around this by doing everything in two batches.
 
 Lets skip Sparcc for now
 ```{r}
@@ -165,6 +168,8 @@ spearPClr_Lagged <- spearCorTestClr_Lagged$p
 source("jacob_library.R")
 ```
 
+Some data wrangling, as per my earlier lesson
+
 ```{r}
 reordered_spearCorTestClr_Lagged <- reorder_cor_and_p(spearCorClr_Lagged, spearPClr_Lagged)
 spearCorClr_Lagged_Reordered <- reordered_spearCorTestClr_Lagged$r
@@ -183,6 +188,8 @@ spearRhoP_lagged
 
 ## Parsing out the lags
 
+
+
 ```{r}
 spearRhoP_lagged2 <- spearRhoP_lagged %>% 
   separate(Var1, c("V1", "Var1"), sep = "-") %>%
@@ -200,7 +207,9 @@ spearRhoP_lagged2 <- spearRhoP_lagged %>%
   
 spearRhoP_lagged2 
 ```
-Now we select the delay with the highest score
+Now we select the delay with the highest score.
+
+Note that we calculated the false discovery rate *before* we selected the value with the highest score, but *after* we removed the delay-vs-delay comparasons.
 
 ```{r}
 spearRhoP_lagged3 <- spearRhoP_lagged2 %>%
@@ -217,7 +226,9 @@ I don't think this works for graphical lasoo but it could be tried.
 
 Autocorrelation may inflate some of these scores.
 
-Its not clear to me exactly when fdr should be calculated.
+# Plotting
+
+I want a network where arrows point from leading to lagging nodes. Unlagged connections should be represented as lines.
 
 ```{r}
 spearRhoP_lagged4 <- spearRhoP_lagged3 %>%
@@ -225,12 +236,7 @@ spearRhoP_lagged4 <- spearRhoP_lagged3 %>%
   mutate(arrow = recode(delay, `-1` = "<", `1` = ">", `0` = "-"))
 ```
 
-```{r}
-#dput(spearRhoP_lagged4)
-```
 
-
-# Plotting
 ```{r}
 LaggedSpearGraph <- graph_from_data_frame(spearRhoP_lagged4)
 ```
@@ -239,11 +245,11 @@ LaggedSpearGraph <- graph_from_data_frame(spearRhoP_lagged4)
 LaggedSpearGraph
 ```
 
-
-
 ```{r}
 set.seed(333)
-plot(LaggedSpearGraph,vertex.size=2, vertex.label.cex = 0.75, edge.arrow.mode = E(LaggedSpearGraph)$arrow)
+plot(LaggedSpearGraph,vertex.size=2, vertex.label.cex = 0.75, edge.arrow.mode = E(LaggedSpearGraph)$arrow, vertex.label = NA, edge.arrow.size = .5)
 ```
 
 Clearly, I'm not an igraph artist but you get the idea.
+
+
