@@ -63,9 +63,9 @@ plot(er.net,
 
 Not particularly exciting as far as networks go (not much interesting structure in
 terms of hubs, clusters). Even so, there are some interesting properties of this
-type of network. For example, there is a "phase transition" around p=0.1 where
+type of network. For example, there is a "phase transition" around p=0.01 where
 the network goes from mostly disconnected to mostly connected in a single component
-(look up percolation theory is you are interested in learning more).
+(look up percolation theory if you are interested in learning more).
 
 ```{r percolation}
 n <- 100
