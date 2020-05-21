@@ -1,0 +1,245 @@
+---
+title: "Random Networks"
+author: "Jake L. Weissman"
+date: "May 21, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Today we are going to generate some random networks. Colloquially, when people 
+say "random" they often mean "uniformly distributed" rather than "stochastic". 
+Importantly, there are many different ways to stochastically generate a network,
+and we will discuss a few day.
+
+The point of this lesson is to get you think about the processes generating your
+own networks, and how you might characterize them (and give you a couple places
+to look when starting with these analyses). If you want a rigorous 
+mathematical treatment of random networks I recommend any of the textbooks/courses
+listed in the extended resources section on the wiki (most textbooks dedicate a
+significant amount of space to these topics). **Importantly, a typical graduate-level
+network science course would spend several weeks at a minimum on the topics I introduce here.**
+
+First let's load in the packages we will be working with. This lesson will mostly
+use `igraph`, though we again use the example gut network provided with `SpiecEasi`.
+I'll also briefly introduce the `randnet` package at the end of the lesson for
+fitting stochastic block models.
+
+```{r Load Packages}
+#Make sure installed
+if("igraph" %in% rownames(installed.packages()) == FALSE){install.packages("igraph")}
+if("SpiecEasi" %in% rownames(installed.packages()) == FALSE){devtools::install_github("zdk123/SpiecEasi")}
+if("randnet" %in% rownames(installed.packages()) == FALSE){install.packages("randnet")}
+
+#load
+library(SpiecEasi)
+library(igraph)
+library(randnet)
+```
+
+## Erdos-Reyni Networks
+
+The Erdos-Reyni random network model is what people usually mean when they say
+"random network". This type of network can be generated in two ways:  
+1. Setting a number of edges `L` and randomly placing them between nodes  
+2. Setting a probability `p` that any two nodes are connected by an edge
+
+We will use approach 2, which is a little easier to work with mathematically and is
+more widely used (though #1 is the original definition). 
+
+Let's give our network 100 nodes, and a probability of 0.1 that any given pair of 
+nodes is connected (each node should have around one connection, a bit less).
+
+```{r ER}
+n <- 100
+p <- 0.1
+er.net <- erdos.renyi.game(n, p, type = "gnp")
+plot(er.net,
+     vertex.label=NA,
+     vertex.size=1)
+```
+
+Not particularly exciting as far as networks go (not much interesting structure in
+terms of hubs, clusters). Even so, there are some interesting properties of this
+type of network. For example, there is a "phase transition" around p=0.1 where
+the network goes from mostly disconnected to mostly connected in a single component
+(look up percolation theory is you are interested in learning more).
+
+```{r percolation}
+n <- 100
+p <- 0.01
+er.net <- erdos.renyi.game(n, p, type = "gnp")
+plot(er.net,
+     vertex.label=NA,
+     vertex.size=1)
+
+n <- 100
+p <- 0.02
+er.net <- erdos.renyi.game(n, p, type = "gnp")
+plot(er.net,
+     vertex.label=NA,
+     vertex.size=1)
+```
+
+One way people often analyze network structure is by looking at the degree distribution
+(the probability distribution of how likely a node is to have a specific degree).
+
+```{r degree dist}
+# Really big, really sparse Erdos-Reyni Network
+n <- 10000
+p <- 0.01
+er.net <- erdos.renyi.game(n, p, type = "gnp")
+
+degree_df <- data.frame(k = 1:length(degree.distribution(er.net)) - 1,
+                        prob = degree.distribution(er.net))
+
+plot(prob ~ k, data=degree_df)
+```
+
+For random network models, there is usually an expected degree distribution 
+associated with the model. For example, for sparse Erdos-Reyni networks the
+degree distribution is well approximated by a Poisson distribution with rate
+parameter lambda equal to the mean degree of the network (which should equal p(n-1)).
+
+```{r poisson}
+k_mean <- p*(n-1)
+theoretical_degree_df <- data.frame(k=1:150,
+                                    prob=dpois(x=1:150,lambda=k_mean))
+plot(prob ~ k, data=degree_df)
+lines(prob ~ k, data=theoretical_degree_df)
+```
+
+This is one good way to check if your network resembles an Erdos-Reyni network or
+has some immediately-apparent complicated structure.
+
+## The Barabasi-Albert Model (Preferential Attachement)
+
+Often, the networks we are interested in have "hubs" - specific nodes with very
+high degree. You won't see these hubs form with the Erdos-Reyni model above, since
+all nodes tend to have similar degree. Networks with hubs generally have "heavy-tailed"
+degree distributions (I'll show an example in a moment).
+
+One simple way to generate a random network with hubs is the Barabasi-Albert algorithm.
+Under this algorithm you start with a seed network and iteratively add nodes. For
+each added node, you connect it to other nodes in the network with a probability
+proportional to their degree (see [the Barabasi textbook](http://networksciencebook.com/chapter/5#barabasi-model) for details). Thus
+nodes with high degree accumulate new connections (a "rich-get-richer" type scenario),
+leading to the formation of hubs.
+
+Let's look at an example
+
+```{r BA}
+n <- 100
+ba.net <- barabasi.game(n, directed = F)
+plot(ba.net,
+     vertex.label=NA,
+     vertex.size=1)
+```
+
+What does the degree distribution of a network built under this algorithm look like?
+
+```{r BADD}
+n <- 10000
+ba.net <- barabasi.game(n, directed = F)
+degree_df <- data.frame(k = 1:length(degree.distribution(ba.net)) - 1,
+                        prob = degree.distribution(ba.net))
+
+k_mean <- mean(degree(ba.net))
+theoretical_degree_df <- data.frame(k=1:150,
+                                    prob=dpois(x=1:150,lambda=k_mean))
+plot(prob ~ k, data=degree_df,log="xy")
+lines(prob ~ k, data=theoretical_degree_df,log="xy")
+```
+
+The curved line is the theoretical fit of the poisson distribution 
+(unlike with the E-R model, it is NOT a good fit here). 
+Notice that we have log-log scaled our data, and get an approximately linear distribution. This corresponds to a "power-law", and network scientists would refer to this as a "scale-free" distribution
+(meaning it has infinite variance, i.e., no "scale" of observation captures it; 
+honestly, just start with the [wikipedia page](https://en.wikipedia.org/wiki/Scale-free_network)).
+
+Fitting a power law may seem simple (it's just a line on a log-log plot), but you
+should proceed with caution. Many have tried to fit power laws without being rigorous.
+I'm not going to get into it here, but the [powRlaw](https://cran.r-project.org/web/packages/poweRlaw/index.html) has a nice [vignette](https://cran.r-project.org/web/packages/poweRlaw/vignettes/b_powerlaw_examples.pdf) if you 
+are interested.
+
+There are a LOT of variants of/extensions to the BA model (see the [Barabasi Textbook](http://networksciencebook.com/chapter/6#evolving-networks)). 
+Feel free to read up on them if you want. Its worth thinking about what processes
+are leading to the network you are studying (even if just as an intellectual excercise).
+
+## Stochastic Block Models
+
+Something we've talked about quite a bit so far in office hours is community-detection.
+So how do you generate a random network with communities? 
+
+The stochastic block model is basically the Erdos-Reyni model with communities.
+You pre-specify some number of communities *K* and a *KxK* matrix whose entries
+describe the probability of edges within (on the diagonal) or between (off the diagonal)
+communities. Basically, its a bunch of Erdos-Reyni networks that you then connect
+at random.
+
+```{r SBM}
+pm <- cbind( c(.3, .01), c(.01, .5) )
+sbm.net <- sample_sbm(n=100, pref.matrix=pm, block.sizes=c(30,70))
+plot(sbm.net,
+     vertex.label=NA,
+     vertex.size=1)
+```
+
+What do their degree distributions look like? Well, this one is bimodal (one peak
+for each cluster - each peak roughly Poisson-distributed) - why do you think our
+theoretical prediction is a little off for the lower peak?
+
+```{r SBM DD}
+pm <- cbind( c(.3, .01), c(.01, .5) )
+sbm.net <- sample_sbm(n=10000, pref.matrix=pm, block.sizes=c(3000,7000))
+degree_df <- data.frame(k = 1:length(degree.distribution(sbm.net)) - 1,
+                        prob = degree.distribution(sbm.net))
+
+k_mean1 <- 0.3*(3000-1)
+theoretical_degree_df1 <- data.frame(k=1:5000,
+                                    prob=dpois(x=1:5000,lambda=k_mean1))
+k_mean2 <- 0.5*(7000-1)
+theoretical_degree_df2 <- data.frame(k=1:5000,
+                                    prob=dpois(x=1:5000,lambda=k_mean2))
+
+plot(prob ~ k, data=degree_df,log="xy")
+lines(prob ~ k, data=theoretical_degree_df1)
+lines(prob ~ k, data=theoretical_degree_df2)
+```
+
+In fact, people often fit stochastic block models (or more complicated variants)
+to their data to detect communities. Because these models are generative, and have
+a strong statistical foundation/justification, they are a nice choice for community
+detection. There are a lot of R packages that will run an SBM for you, and most
+do not come with extensive documentation - probably why you haven't used them before. 
+Here's an example from one package that will do it for you (`randnet`).
+
+```{r randnet}
+pm <- cbind( c(.3, .01), c(.01, .5) )
+sbm.net <- sample_sbm(n=100, pref.matrix=pm, block.sizes=c(30,70))
+
+#Fit SBM with randnet package
+#adapted from: https://methods.sagepub.com/dataset/howtoguide/sbm-in-karate-1977
+
+# First get the optimal number of clusters
+bhmc <- BHMC.estimate(as_adjacency_matrix(sbm.net),15)
+bhmc
+
+# Now fit your SBM with the desired number of clusters (really the "degree corrected SBM" according to their documentation)
+sbm.fit <- reg.SSP(as_adjacency_matrix(sbm.net, sparse=FALSE), K=bhmc$K)
+sbm.fit$cluster
+
+plot(sbm.net, 
+     vertex.label=NA,
+     vertex.color = sbm.fit$cluster)
+
+```
+
+SBMs are in themselves a large field of research, so go do some reading.
+
+## Bonus
+
+Try looking at the degree distribution of the SpiecEasi network we made a couple
+weeks ago (don't worry about edge weights). What shape does it have?
