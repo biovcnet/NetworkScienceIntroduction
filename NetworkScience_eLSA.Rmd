@@ -4,33 +4,57 @@ author: "Jacob Cram"
 date: "5/27/2020"
 output: html_notebook
 ---
-
+# Getting Ready
 Every time I ever run elsa, I look at the help file.
 
-Here are some things to notice. You need to give it a datafile. We don't have any replicates in our datafile, thus "r" is going to be 1, and "s" is going to be our number of columns. So you'll have to count those somehow.
+```{bash engine.opts='-i'}
+conda activate elsa01
+lsa_compute -h
+```
+
 
 ```{r}
 arisa <- read.delim("SPOT/spotClrMtx.tsv", sep = "\t")
 dim(arisa)
 ```
 
-Easiest and most relyable to just load into R. We have 119 time point and 21 OTUs, so `s = 21`
-also `-b` and `-t` also have do do with replicates, so we can set `-b` to `0`, and ignore `-t`
-
-`dataFile` is our input
-`resultFile` is our output
-
-Other things. We've alredy interpolated our NA values, so `-f` doesn't matter, but if we had a few months of NA values that would matter. We've also prefiltered our data but if we hadn't we would want to specify `-m` to tell it how often something had to show up. We can set it to zero to do no more filtering.  Let me just try running it.
+# Example Run
+One thing you need to know is the number of columns, its 119. Here's an example of working code, lets run it and look at what it does. 
 
 ```{bash engine.opts='-i'}
 conda activate elsa01
-lsa_compute SPOT/spotClrMtx.tsv SPOT/spotClrMtx.out.csv -d 1 -m 0 -p theo -x 1000 -b 0 -r 1 -s 119 -n none
+lsa_compute SPOT/spotClrMtx.tsv SPOT/spotClrMtx.out.tsv -d 1 -m 0 -p theo -x 1000 -b 0 -r 1 -s 119 -n none
 ```
 
-And now we have a super cryptic error.
+`dataFile` is our input: `SPOT/spotClrMtx.tsv`
+`resultFile` is our output: `SPOT/spotClrMtx.out.tsv`
 
-```{bash engine.opts='-i'}
-conda activate elsa01
-lsa_compute -h
-```
+I put these in as the first two arguments
+
+`-d` The *delay* that is how much do I want to allow things to lag. For a monthly data set, I use one. That is, I am intrested in cases where one variable changes, and then another responds one month later.
+
+`-m` How many times does a species have to show up in the data set for us to not have to throw it out. We've already done filtering in `R` so I'm going to tell it not to toss anything by setting this to `0`
+
+`-p` This is the method that it uses to compute the *p*-value for just the *LS* score. So if you are interested in "global" associations, eg spearman or pearson and not *LS*, you want the fastest one, which is theo. If you do care about *LS* score, you should run with theo first to make sure things work. This means that the p-value is estemated with an equation, rather than actual permutation testing. Since theo can be wrong, you probably don't want to bet the farm on it. `perm` is slowist and permutes everyting `-x` times. `mix` does *theo* unless the permutation falls near some dectection threshold in which case it runs *perm*
+
+`-x` How many permutations to use if you specify `-p theo` or `-p mix`.
+
+`-b` This is relevant if you have replicates. We don't so I set it to `0`. 
+
+`-r` The number of replicates you have. We don't have replicates so I set it to `1`
+
+`-s` The number of samples (timepoints) that you have. `119` in our case. See above.
+
+`-n` How do you want to normalize the data. We already did and then we `clr` transformed it and we don't want to mess with that so I set it to none.
+
+And thats it.
+
+# Output file.
+Lets look at the output file and talk about what each thing means.
+
+
+
+
+
+
 

@@ -1752,64 +1752,17 @@ summary {
 
 
 <!-- rnb-text-begin -->
+<div id="getting-ready" class="section level1">
+<h1>Getting Ready</h1>
 <p>Every time I ever run elsa, I look at the help file.</p>
-<p>Here are some things to notice. You need to give it a datafile. We don’t have any replicates in our datafile, thus “r” is going to be 1, and “s” is going to be our number of columns. So you’ll have to count those somehow.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYXJpc2EgPC0gcmVhZC5kZWxpbShcIlNQT1Qvc3BvdENsck10eC50c3ZcIiwgc2VwID0gXCJcXHRcIilcbmRpbShhcmlzYSlcbmBgYCJ9 -->
-<pre class="r"><code>arisa &lt;- read.delim(&quot;SPOT/spotClrMtx.tsv&quot;, sep = &quot;\t&quot;)
-dim(arisa)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDExOSAgMjFcbiJ9 -->
-<pre><code>[1] 119  21</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>Easiest and most relyable to just load into R. We have 119 time point and 21 OTUs, so <code>s = 21</code> also <code>-b</code> and <code>-t</code> also have do do with replicates, so we can set <code>-b</code> to <code>0</code>, and ignore <code>-t</code></p>
-<p><code>dataFile</code> is our input <code>resultFile</code> is our output</p>
-<p>Other things. We’ve alredy interpolated our NA values, so <code>-f</code> doesn’t matter, but if we had a few months of NA values that would matter. We’ve also prefiltered our data but if we hadn’t we would want to specify <code>-m</code> to tell it how often something had to show up. We can set it to zero to do no more filtering. Let me just try running it.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuY29uZGEgYWN0aXZhdGUgZWxzYTAxXG5sc2FfY29tcHV0ZSBTUE9UL3Nwb3RDbHJNdHgudHN2IFNQT1Qvc3BvdENsck10eC5vdXQuY3N2IC1kIDEgLW0gMCAtcCB0aGVvIC14IDEwMDAgLWIgMCAtciAxIC1zIDExOSAtbiBub25lXG5gYGAifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuY29uZGEgYWN0aXZhdGUgZWxzYTAxXG5sc2FfY29tcHV0ZSAtaFxuYGBgIn0= -->
 <pre class="bash"><code>conda activate elsa01
-lsa_compute SPOT/spotClrMtx.tsv SPOT/spotClrMtx.out.csv -d 1 -m 0 -p theo -x 1000 -b 0 -r 1 -s 119 -n none</code></pre>
+lsa_compute -h</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiYmFzaDogY2Fubm90IHNldCB0ZXJtaW5hbCBwcm9jZXNzIGdyb3VwICg3NTI2KTogSW5hcHByb3ByaWF0ZSBpb2N0bCBmb3IgZGV2aWNlXG5iYXNoOiBubyBqb2IgY29udHJvbCBpbiB0aGlzIHNoZWxsXG5sc2FfY29tcHV0ZSAocmV2OiB2MS4wLjJAR0lUOiA4MDk4YzUzKSAtIGNvcHlyaWdodCBMaSBDaGFybGllIFhpYSwgbGl4aWFAc3RhbmZvcmQuZWR1XG5maXJzdERhdGEgZmFjdG9yTnVtLCByZXBOdW0sIHNwb3ROdW0gPSAyMSwgMSwgMTE5XG5zZWNvbmREYXRhIGZhY3Rvck51bSwgcmVwTnVtLCBzcG90TnVtID0gMjEsIDEsIDExOVxuY2FsY3VsYXRpbmcgIDQ0MSBwYWlyd2lzZSBsb2NhbCBzaW1pbGFyaXR5IHNjb3Jlcy4uLlxuaW5zaWRlIGFwcGx5QW5hbHlzaXMuLi5cbmNvbXB1dGluZyBwX3RhYmxlIHdpdGggUm1heD0gNTBcbnBhaXJ3aXNlIGNhbGN1bGF0aW9uLi4uXG5MUyBRdmFsdWVzLi4uXG5QQ0MgUXZhbHVlcy4uLlxuU0NDIFF2YWx1ZXMuLi5cblNQQ0MgUXZhbHVlcy4uLlxuU1NDQyBRdmFsdWVzLi4uXG4ifQ== -->
-<pre><code>bash: cannot set terminal process group (7526): Inappropriate ioctl for device
-bash: no job control in this shell
-lsa_compute (rev: v1.0.2@GIT: 8098c53) - copyright Li Charlie Xia, lixia@stanford.edu
-firstData factorNum, repNum, spotNum = 21, 1, 119
-secondData factorNum, repNum, spotNum = 21, 1, 119
-calculating  441 pairwise local similarity scores...
-inside applyAnalysis...
-computing p_table with Rmax= 50
-pairwise calculation...
-LS Qvalues...
-PCC Qvalues...
-SCC Qvalues...
-SPCC Qvalues...
-SSCC Qvalues...</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiZGVsYXlMaW1pdFx0bWluT2NjdXJcdGZpbGxNZXRob2RcdHB2YWx1ZU1ldGhvZFx0cHJlY2lzaW9uXHRkYXRhRmlsZVx0ZXh0cmFGaWxlXHRyZXN1bHRGaWxlXHRyZXBOdW1cdHNwb3ROdW1cdGJvb3ROdW1cdHRyYW5zRnVuY1x0bm9ybU1ldGhvZFx0YXBwcm94VmFyXHR0cmVuZFRocmVzaFxuMVx0MFx0bm9uZVx0dGhlb1x0MTAwMFx0U1BPVC9zcG90Q2xyTXR4LnRzdlx0XHRTUE9UL3Nwb3RDbHJNdHgub3V0LmNzdlx0MVx0MTE5XHQwXHRzaW1wbGVcdG5vbmVcdDFcdE5vbmVcbiJ9 -->
-<pre><code>delayLimit  minOccur    fillMethod  pvalueMethod    precision   dataFile    extraFile   resultFile  repNum  spotNum bootNum transFunc   normMethod  approxVar   trendThresh
-1   0   none    theo    1000    SPOT/spotClrMtx.tsv     SPOT/spotClrMtx.out.csv 1   119 0   simple  none    1   None</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiZmluaXNoaW5nIHVwLi4uXG50aW1lIGVsYXBzZWQgMS41ODA0ODUgc2Vjb25kc1xuIn0= -->
-<pre><code>finishing up...
-time elapsed 1.580485 seconds</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
-<p>And now we have a super cryptic error.</p>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuY29uZGEgYWN0aXZhdGUgZWxzYTAxXG5sc2FfY29tcHV0ZSAtaFxuXG5gYGAifQ== -->
-<pre class="bash"><code>conda activate elsa01
-lsa_compute -h
-</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiYmFzaDogY2Fubm90IHNldCB0ZXJtaW5hbCBwcm9jZXNzIGdyb3VwICg0OTA2KTogSW5hcHByb3ByaWF0ZSBpb2N0bCBmb3IgZGV2aWNlXG5iYXNoOiBubyBqb2IgY29udHJvbCBpbiB0aGlzIHNoZWxsXG4ifQ== -->
-<pre><code>bash: cannot set terminal process group (4906): Inappropriate ioctl for device
+<!-- rnb-output-begin eyJkYXRhIjoiYmFzaDogY2Fubm90IHNldCB0ZXJtaW5hbCBwcm9jZXNzIGdyb3VwICg5MTU1KTogSW5hcHByb3ByaWF0ZSBpb2N0bCBmb3IgZGV2aWNlXG5iYXNoOiBubyBqb2IgY29udHJvbCBpbiB0aGlzIHNoZWxsXG4ifQ== -->
+<pre><code>bash: cannot set terminal process group (9155): Inappropriate ioctl for device
 bash: no job control in this shell</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-output-begin eyJkYXRhIjoidXNhZ2U6IGxzYV9jb21wdXRlIFstaF0gWy1lIEVYVFJBRklMRV0gWy1kIERFTEFZTElNSVRdIFstbSBNSU5PQ0NVUl1cbiAgICAgICAgICAgICAgICAgICBbLXAge3Blcm0sdGhlbyxtaXh9XSBbLXggUFJFQ0lTSU9OXVxuICAgICAgICAgICAgICAgICAgIFstYiB7MCwxMDAsMjAwLDUwMCwxMDAwLDIwMDB9XSBbLXIgUkVQTlVNXSBbLXMgU1BPVE5VTV1cbiAgICAgICAgICAgICAgICAgICBbLXQge3NpbXBsZSxTRCxNZWQsTUFEfV1cbiAgICAgICAgICAgICAgICAgICBbLWYge25vbmUsemVybyxsaW5lYXIscXVhZHJhdGljLGN1YmljLHNsaW5lYXIsbmVhcmVzdH1dXG4gICAgICAgICAgICAgICAgICAgWy1uIHtwZXJjZW50aWxlLHBlcmNlbnRpbGVaLHBueixyb2J1c3RaLHJueixub25lfV1cbiAgICAgICAgICAgICAgICAgICBbLXEge3NjaXB5fV0gWy1UIFRSRU5EVEhSRVNIXSBbLWEgQVBQUk9YVkFSXVxuICAgICAgICAgICAgICAgICAgIFstdiBQUk9HUkVTU0lWRV1cbiAgICAgICAgICAgICAgICAgICBkYXRhRmlsZSByZXN1bHRGaWxlXG5cbnBvc2l0aW9uYWwgYXJndW1lbnRzOlxuICBkYXRhRmlsZSAgICAgICAgICAgICAgdGhlIGlucHV0IGRhdGEgZmlsZSwgbSBieSAociAqIHMpdGFiIGRlbGltaXRlZCB0ZXh0O1xuICAgICAgICAgICAgICAgICAgICAgICAgdG9wIGxlZnQgY2VsbCBzdGFydCB3aXRoICcjJyB0byBtYXJrIHRoaXMgaXMgdGhlXG4gICAgICAgICAgICAgICAgICAgICAgICBoZWFkZXIgbGluZTsgbSBpcyBudW1iZXIgb2YgdmFyaWFibGVzLCByIGlzIG51bWJlciBvZlxuICAgICAgICAgICAgICAgICAgICAgICAgcmVwbGljYXRlcywgcyBpdCBudW1iZXIgb2YgdGltZSBzcG90czsgZmlyc3Qgcm93OlxuICAgICAgICAgICAgICAgICAgICAgICAgI2hlYWRlciBzMXIxIHMxcjIgczJyMSBzMnIyOyBzZWNvbmQgcm93OiB4ID8uPz8gPy4/P1xuICAgICAgICAgICAgICAgICAgICAgICAgPy4/PyA/Lj8/OyBmb3IgYSAxIGJ5ICgyKjIpIGRhdGFcbiAgcmVzdWx0RmlsZSAgICAgICAgICAgIHRoZSBvdXRwdXQgcmVzdWx0IGZpbGVcblxub3B0aW9uYWwgYXJndW1lbnRzOlxuICAtaCwgLS1oZWxwICAgICAgICAgICAgc2hvdyB0aGlzIGhlbHAgbWVzc2FnZSBhbmQgZXhpdFxuICAtZSBFWFRSQUZJTEUsIC0tZXh0cmFGaWxlIEVYVFJBRklMRVxuICAgICAgICAgICAgICAgICAgICAgICAgc3BlY2lmeSBhbiBleHRyYSBkYXRhZmlsZSwgb3RoZXJ3aXNlIHRoZSBmaXJzdFxuICAgICAgICAgICAgICAgICAgICAgICAgZGF0YWZpbGUgd2lsbCBiZSB1c2VkIGFuZCBvbmx5IGxvd2VyIHRyaWFuZ2xlIGVudHJpZXNcbiAgICAgICAgICAgICAgICAgICAgICAgIG9mIHBhaXJ3aXNlIG1hdHJpeCB3aWxsIGJlIGNvbXB1dGVkXG4gIC1kIERFTEFZTElNSVQsIC0tZGVsYXlMaW1pdCBERUxBWUxJTUlUXG4gICAgICAgICAgICAgICAgICAgICAgICBzcGVjaWZ5IHRoZSBtYXhpbXVtIGRlbGF5IHBvc3NpYmxlLCBkZWZhdWx0OiAwLCBtdXN0XG4gICAgICAgICAgICAgICAgICAgICAgICBiZSBhbiBpbnRlZ2VyID49MCBhbmQgPHNwb3ROdW1cbiAgLW0gTUlOT0NDVVIsIC0tbWluT2NjdXIgTUlOT0NDVVJcbiAgICAgICAgICAgICAgICAgICAgICAgIHNwZWNpZnkgdGhlIG1pbmltdW0gb2NjdXJlbmNlIHBlcmNlbnRpbGUgb2YgYWxsIHRpbWVzLFxuICAgICAgICAgICAgICAgICAgICAgICAgZGVmYXVsdDogNTAsXG4gIC1wIHtwZXJtLHRoZW8sbWl4fSwgLS1wdmFsdWVNZXRob2Qge3Blcm0sdGhlbyxtaXh9XG4gICAgICAgICAgICAgICAgICAgICAgICBzcGVjaWZ5IHRoZSBtZXRob2QgZm9yIHAtdmFsdWUgZXN0aW1hdGlvbiwgZGVmYXVsdDpcbiAgICAgICAgICAgICAgICAgICAgICAgIHB2YWx1ZU1ldGhvZD1wZXJtLCBpLmUuIHVzZSBwZXJtdXRhdGlvbiB0aGVvOlxuICAgICAgICAgICAgICAgICAgICAgICAgdGhlb3JldGljYWwgYXBwcm94aW1hdG9uOyBpZiB1c2VkIGFsc28gc2V0IC1hIHZhbHVlLlxuICAgICAgICAgICAgICAgICAgICAgICAgbWl4OiB1c2UgdGhlb3JldGljYWwgYXBwcm94aW1hdGlvbiBmb3IgcHJlLXNjcmVlbmluZ1xuICAgICAgICAgICAgICAgICAgICAgICAgaWYgcHJvbWlzaW5nICg8MC4wNSkgdGhlbiB1c2UgcGVybXV0YXRpb24uXG4gIC14IFBSRUNJU0lPTiwgLS1wcmVjaXNpb24gUFJFQ0lTSU9OXG4gICAgICAgICAgICAgICAgICAgICAgICBwZXJtdXRhdGlvbi9wcmVjaXNpb24sIHNwZWNpZnkgdGhlIHBlcm11dGF0aW9uIG51bWJlclxuICAgICAgICAgICAgICAgICAgICAgICAgb3IgcHJlY2lzaW9uPTEvcGVybXV0YXRpb24gZm9yIHAtdmFsdWUgZXN0aW1hdGlvbi5cbiAgICAgICAgICAgICAgICAgICAgICAgIGRlZmF1bHQgaXMgMTAwMCwgbXVzdCBiZSBhbiBpbnRlZ2VyID4wXG4gIC1iIHswLDEwMCwyMDAsNTAwLDEwMDAsMjAwMH0sIC0tYm9vdE51bSB7MCwxMDAsMjAwLDUwMCwxMDAwLDIwMDB9XG4gICAgICAgICAgICAgICAgICAgICAgICBzcGVjaWZ5IHRoZSBudW1iZXIgb2YgYm9vdHN0cmFwcyBmb3IgOTUlIGNvbmZpZGVuY2VcbiAgICAgICAgICAgICAgICAgICAgICAgIGludGVydmFsIGVzdGltYXRpb24sIGRlZmF1bHQ6IDEwMCwgY2hvaWNlczogMCwgMTAwLFxuICAgICAgICAgICAgICAgICAgICAgICAgMjAwLCA1MDAsIDEwMDAsIDIwMDAuIFNldHRpbmcgYm9vdE51bT0wIGF2b2lkc1xuICAgICAgICAgICAgICAgICAgICAgICAgYm9vdHN0cmFwLiBCb290c3RyYXAgaXMgbm90IHN1aXRhYmxlIGZvciBub24tXG4gICAgICAgICAgICAgICAgICAgICAgICByZXBsaWNhdGVkIGRhdGEuXG4gIC1yIFJFUE5VTSwgLS1yZXBOdW0gUkVQTlVNXG4gICAgICAgICAgICAgICAgICAgICAgICBzcGVjaWZ5IHRoZSBudW1iZXIgb2YgcmVwbGljYXRlcyBlYWNoIHRpbWUgc3BvdCxcbiAgICAgICAgICAgICAgICAgICAgICAgIGRlZmF1bHQ6IDEsIG11c3QgYmUgcHJvdmlkZWQgYW5kIHZhbGlkLlxuICAtcyBTUE9UTlVNLCAtLXNwb3ROdW0gU1BPVE5VTVxuICAgICAgICAgICAgICAgICAgICAgICAgc3BlY2lmeSB0aGUgbnVtYmVyIG9mIHRpbWUgc3BvdHMsIGRlZmF1bHQ6IDQsIG11c3QgYmVcbiAgICAgICAgICAgICAgICAgICAgICAgIHByb3ZpZGVkIGFuZCB2YWxpZC5cbiAgLXQge3NpbXBsZSxTRCxNZWQsTUFEfSwgLS10cmFuc0Z1bmMge3NpbXBsZSxTRCxNZWQsTUFEfVxuICAgICAgICAgICAgICAgICAgICAgICAgc3BlY2lmeSB0aGUgbWV0aG9kIHRvIHN1bW1hcml6ZSByZXBsaWNhdGVzIGRhdGEsXG4gICAgICAgICAgICAgICAgICAgICAgICBkZWZhdWx0OiBzaW1wbGUsIGNob2ljZXM6IHNpbXBsZSwgU0QsIE1lZCwgTUFEIE5PVEU6XG4gICAgICAgICAgICAgICAgICAgICAgICBzaW1wbGU6IHNpbXBsZSBhdmVyYWdpbmcgU0Q6IHN0YW5kYXJkIGRldmlhdGlvblxuICAgICAgICAgICAgICAgICAgICAgICAgd2VpZ2h0ZWQgYXZlcmFnaW5nIE1lZDogc2ltcGxlIE1lZGlhbiBNQUQ6IG1lZGlhblxuICAgICAgICAgICAgICAgICAgICAgICAgYWJzb2x1dGUgZGV2aWF0aW9uIHdlaWdodGVkIG1lZGlhbjtcbiAgLWYge25vbmUsemVybyxsaW5lYXIscXVhZHJhdGljLGN1YmljLHNsaW5lYXIsbmVhcmVzdH0sIC0tZmlsbE1ldGhvZCB7bm9uZSx6ZXJvLGxpbmVhcixxdWFkcmF0aWMsY3ViaWMsc2xpbmVhcixuZWFyZXN0fVxuICAgICAgICAgICAgICAgICAgICAgICAgc3BlY2lmeSB0aGUgbWV0aG9kIHRvIGZpbGwgbWlzc2luZywgZGVmYXVsdDogbm9uZSxcbiAgICAgICAgICAgICAgICAgICAgICAgIGNob2ljZXM6IG5vbmUsIHplcm8sIGxpbmVhciwgcXVhZHJhdGljLCBjdWJpYyxcbiAgICAgICAgICAgICAgICAgICAgICAgIHNsaW5lYXIsIG5lYXJlc3Qgb3BlcmF0aW9uIEFGVEVSIG5vcm1hbGl6YXRpb246IG5vbmU6XG4gICAgICAgICAgICAgICAgICAgICAgICBmaWxsIHVwIHdpdGggemVyb3MgOyBvcGVyYXRpb24gQkVGT1JFIG5vcm1hbGl6YXRpb246XG4gICAgICAgICAgICAgICAgICAgICAgICB6ZXJvOiBmaWxsIHVwIHdpdGggemVybyBvcmRlciBzcGxpbmVzOyBsaW5lYXI6IGZpbGwgdXBcbiAgICAgICAgICAgICAgICAgICAgICAgIHdpdGggbGluZWFyIHNwbGluZXM7IHNsaW5lYXI6IGZpbGwgdXAgd2l0aCBzbGluZWFyO1xuICAgICAgICAgICAgICAgICAgICAgICAgcXVhZHJhdGljOiBmaWxsIHVwIHdpdGggcXVhZHJhdGljIHNwbGluZTsgY3ViaWM6IGZpbGxcbiAgICAgICAgICAgICAgICAgICAgICAgIHVwIHdpdGggY3ViaWMgc3BsaW5lOyBuZWFyZXN0OiBmaWxsIHVwIHdpdGggbmVhcmVzdFxuICAgICAgICAgICAgICAgICAgICAgICAgbmVpZ2hib3JcbiAgLW4ge3BlcmNlbnRpbGUscGVyY2VudGlsZVoscG56LHJvYnVzdFoscm56LG5vbmV9LCAtLW5vcm1NZXRob2Qge3BlcmNlbnRpbGUscGVyY2VudGlsZVoscG56LHJvYnVzdFoscm56LG5vbmV9XG4gICAgICAgICAgICAgICAgICAgICAgICBtdXN0IHNwZWNpZnkgdGhlIG1ldGhvZCB0byBub3JtYWxpemUgZGF0YSwgZGVmYXVsdDpcbiAgICAgICAgICAgICAgICAgICAgICAgIHJvYnVzdFosIGNob2ljZXM6IHBlcmNlbnRpbGUsIG5vbmUsIHBueiwgcGVyY2VudGlsZVosXG4gICAgICAgICAgICAgICAgICAgICAgICByb2J1c3RaIG9yIGEgZmxvYXQgTk9URTogcGVyY2VudGlsZTogcGVyY2VudGlsZVxuICAgICAgICAgICAgICAgICAgICAgICAgbm9ybWFsaXphdGlvbiwgaW5jbHVkaW5nIHplcm9zIChvbmx5IHdpdGggcGVybSkgcG56OlxuICAgICAgICAgICAgICAgICAgICAgICAgcGVyY2VudGlsZSBub3JtYWxpemF0aW9uLCBleGNsdWRpbmcgemVyb3MgKG9ubHkgd2l0aFxuICAgICAgICAgICAgICAgICAgICAgICAgcGVybSkgcGVyY2VudGlsZVo6IHBlcmNlbnRpbGUgbm9ybWFsaXphdGlvbiArXG4gICAgICAgICAgICAgICAgICAgICAgICBaLW5vcm1hbGl6YXRpb24gcm56OiBwZXJjZW50aWxlWiBub3JtYWxpemF0aW9uICtcbiAgICAgICAgICAgICAgICAgICAgICAgIGV4Y2x1ZGluZyB6ZXJvcyArIHJvYnVzdCBlc3RpbWF0ZXMgKHRoZW8sIG1peCwgcGVybVxuICAgICAgICAgICAgICAgICAgICAgICAgT0spIHJvYnVzdFo6IHBlcmNlbnRpbGVaIG5vcm1hbGl6YXRpb24gKyByb2J1c3RcbiAgICAgICAgICAgICAgICAgICAgICAgIGVzdGltYXRlcyAod2l0aCBwZXJtLCBtaXggYW5kIHRoZW8sIGFuZCBtdXN0IHVzZSB0aGlzXG4gICAgICAgICAgICAgICAgICAgICAgICBmb3IgdGhlbyBhbmQgbWl4LCBkZWZhdWx0KVxuICAtcSB7c2NpcHl9LCAtLXF2YWx1ZU1ldGhvZCB7c2NpcHl9XG4gICAgICAgICAgICAgICAgICAgICAgICBzcGVjaWZ5IHRoZSBxdmFsdWUgY2FsY3VsYXRpb24gbWV0aG9kLCBzY2lweTogdXNlXG4gICAgICAgICAgICAgICAgICAgICAgICBzY2lweSBhbmQgc3RvcmV5UXZhbHVlIGZ1bmN0aW9uLCBkZWZhdWx0XG4gIC1UIFRSRU5EVEhSRVNILCAtLXRyZW5kVGhyZXNoIFRSRU5EVEhSRVNIXG4gICAgICAgICAgICAgICAgICAgICAgICBpZiB0cmVuZCBzZXJpZXMgYmFzZWQgYW5hbHlzaXMgaXMgZGVzaXJlZCwgdXNlIHRoaXNcbiAgICAgICAgICAgICAgICAgICAgICAgIG9wdGlvbiBOT1RFOiB3aGVuIHRoaXMgaXMgdXNlZCwgbXVzdCBhbHNvIHN1cHBseVxuICAgICAgICAgICAgICAgICAgICAgICAgcmVhc29uYmxlIHZhbHVlcyBmb3IgLXAsIC1hLCAtbiBvcHRpb25zXG4gIC1hIEFQUFJPWFZBUiwgLS1hcHByb3hWYXIgQVBQUk9YVkFSXG4gICAgICAgICAgICAgICAgICAgICAgICBpZiB1c2UgLXAgdGhlbyBhbmQgLVQsIG11c3Qgc2V0IHRoaXMgdmFsdWVcbiAgICAgICAgICAgICAgICAgICAgICAgIGFwcHJvcHJpYXRlbHksIHByZWNhbGN1bGF0ZWQgLWEgezEuMjUsIDAuOTMsIDAuNTYsMC4xM1xuICAgICAgICAgICAgICAgICAgICAgICAgfSBmb3IgaS5pLmQuIHN0YW5kYXJkIG5vcm1hbCBudWxsIGFuZCAtVCB7MCwgMC41LCAxLFxuICAgICAgICAgICAgICAgICAgICAgICAgMn0gcmVzcGVjdGl2ZWx5LiBGb3Igb3RoZXIgZGlzdHJpYnV0aW9uIGFuZCAtVCB2YWx1ZXMsXG4gICAgICAgICAgICAgICAgICAgICAgICBzZWUgRkFRIGFuZCBYaWEgZXQgYWwuIDIwMTMgaW4gcmVmZXJlbmNlXG4gIC12IFBST0dSRVNTSVZFLCAtLXByb2dyZXNzaXZlIFBST0dSRVNTSVZFXG4gICAgICAgICAgICAgICAgICAgICAgICBzcGVjaWZ5IHRoZSBudW1iZXIgb2YgcHJvZ3Jlc3NpdmUgb3V0cHV0IHRvIHNhdmVcbiAgICAgICAgICAgICAgICAgICAgICAgIG1lbW9yeSwgZGVmYXVsdDogMCwgMkcgbWVtb3J5IGlzIHJlcXVpcmVkIGZvciAxTVxuICAgICAgICAgICAgICAgICAgICAgICAgcGFpcndpc2UgY29tcGFyaXNvbi5cbiJ9 -->
@@ -1918,8 +1871,47 @@ optional arguments:
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYXJpc2EgPC0gcmVhZC5kZWxpbShcIlNQT1Qvc3BvdENsck10eC50c3ZcIiwgc2VwID0gXCJcXHRcIilcbmRpbShhcmlzYSlcbmBgYCJ9 -->
+<pre class="r"><code>arisa &lt;- read.delim(&quot;SPOT/spotClrMtx.tsv&quot;, sep = &quot;\t&quot;)
+dim(arisa)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDExOSAgMjFcbiJ9 -->
+<pre><code>[1] 119  21</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="example-run" class="section level1">
+<h1>Example Run</h1>
+<p>One thing you need to know is the number of columns, its 119. Here’s an example of working code, lets run it and look at what it does.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuY29uZGEgYWN0aXZhdGUgZWxzYTAxXG5sc2FfY29tcHV0ZSBTUE9UL3Nwb3RDbHJNdHgudHN2IFNQT1Qvc3BvdENsck10eC5vdXQudHN2IC1kIDEgLW0gMCAtcCB0aGVvIC14IDEwMDAgLWIgMCAtciAxIC1zIDExOSAtbiBub25lXG5gYGAifQ== -->
+<pre class="bash"><code>conda activate elsa01
+lsa_compute SPOT/spotClrMtx.tsv SPOT/spotClrMtx.out.tsv -d 1 -m 0 -p theo -x 1000 -b 0 -r 1 -s 119 -n none</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p><code>dataFile</code> is our input: <code>SPOT/spotClrMtx.tsv</code> <code>resultFile</code> is our output: <code>SPOT/spotClrMtx.out.tsv</code></p>
+<p>I put these in as the first two arguments</p>
+<p><code>-d</code> The <em>delay</em> that is how much do I want to allow things to lag. For a monthly data set, I use one. That is, I am intrested in cases where one variable changes, and then another responds one month later.</p>
+<p><code>-m</code> How many times does a species have to show up in the data set for us to not have to throw it out. We’ve already done filtering in <code>R</code> so I’m going to tell it not to toss anything by setting this to <code>0</code></p>
+<p><code>-p</code> This is the method that it uses to compute the <em>p</em>-value for just the <em>LS</em> score. So if you are interested in “global” associations, eg spearman or pearson and not <em>LS</em>, you want the fastest one, which is theo. If you do care about <em>LS</em> score, you should run with theo first to make sure things work. This means that the p-value is estemated with an equation, rather than actual permutation testing. Since theo can be wrong, you probably don’t want to bet the farm on it. <code>perm</code> is slowist and permutes everyting <code>-x</code> times. <code>mix</code> does <em>theo</em> unless the permutation falls near some dectection threshold in which case it runs <em>perm</em></p>
+<p><code>-x</code> How many permutations to use if you specify <code>-p theo</code> or <code>-p mix</code>.</p>
+<p><code>-b</code> This is relevant if you have replicates. We don’t so I set it to <code>0</code>.</p>
+<p><code>-r</code> The number of replicates you have. We don’t have replicates so I set it to <code>1</code></p>
+<p><code>-s</code> The number of samples (timepoints) that you have. <code>119</code> in our case. See above.</p>
+<p><code>-n</code> How do you want to normalize the data. We already did and then we <code>clr</code> transformed it and we don’t want to mess with that so I set it to none.</p>
+<p>And thats it.</p>
+</div>
+<div id="output-file." class="section level1">
+<h1>Output file.</h1>
+<p>Lets look at the output file and talk about what each thing means.</p>
+<!-- rnb-text-end -->
+</div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiTmV0d29ya1NjaWVuY2UgRXh0ZW5kZWQgTG9jYWwgU2ltaWxhcml0eSBBbmFseXNpcyAoZUxTQSkiCmF1dGhvcjogIkphY29iIENyYW0iCmRhdGU6ICI1LzI3LzIwMjAiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCkV2ZXJ5IHRpbWUgSSBldmVyIHJ1biBlbHNhLCBJIGxvb2sgYXQgdGhlIGhlbHAgZmlsZS4KCkhlcmUgYXJlIHNvbWUgdGhpbmdzIHRvIG5vdGljZS4gWW91IG5lZWQgdG8gZ2l2ZSBpdCBhIGRhdGFmaWxlLiBXZSBkb24ndCBoYXZlIGFueSByZXBsaWNhdGVzIGluIG91ciBkYXRhZmlsZSwgdGh1cyAiciIgaXMgZ29pbmcgdG8gYmUgMSwgYW5kICJzIiBpcyBnb2luZyB0byBiZSBvdXIgbnVtYmVyIG9mIGNvbHVtbnMuIFNvIHlvdSdsbCBoYXZlIHRvIGNvdW50IHRob3NlIHNvbWVob3cuCgpgYGB7cn0KYXJpc2EgPC0gcmVhZC5kZWxpbSgiU1BPVC9zcG90Q2xyTXR4LnRzdiIsIHNlcCA9ICJcdCIpCmRpbShhcmlzYSkKYGBgCgpFYXNpZXN0IGFuZCBtb3N0IHJlbHlhYmxlIHRvIGp1c3QgbG9hZCBpbnRvIFIuIFdlIGhhdmUgMTE5IHRpbWUgcG9pbnQgYW5kIDIxIE9UVXMsIHNvIGBzID0gMjFgCmFsc28gYC1iYCBhbmQgYC10YCBhbHNvIGhhdmUgZG8gZG8gd2l0aCByZXBsaWNhdGVzLCBzbyB3ZSBjYW4gc2V0IGAtYmAgdG8gYDBgLCBhbmQgaWdub3JlIGAtdGAKCmBkYXRhRmlsZWAgaXMgb3VyIGlucHV0CmByZXN1bHRGaWxlYCBpcyBvdXIgb3V0cHV0CgpPdGhlciB0aGluZ3MuIFdlJ3ZlIGFscmVkeSBpbnRlcnBvbGF0ZWQgb3VyIE5BIHZhbHVlcywgc28gYC1mYCBkb2Vzbid0IG1hdHRlciwgYnV0IGlmIHdlIGhhZCBhIGZldyBtb250aHMgb2YgTkEgdmFsdWVzIHRoYXQgd291bGQgbWF0dGVyLiBXZSd2ZSBhbHNvIHByZWZpbHRlcmVkIG91ciBkYXRhIGJ1dCBpZiB3ZSBoYWRuJ3Qgd2Ugd291bGQgd2FudCB0byBzcGVjaWZ5IGAtbWAgdG8gdGVsbCBpdCBob3cgb2Z0ZW4gc29tZXRoaW5nIGhhZCB0byBzaG93IHVwLiBXZSBjYW4gc2V0IGl0IHRvIHplcm8gdG8gZG8gbm8gbW9yZSBmaWx0ZXJpbmcuICBMZXQgbWUganVzdCB0cnkgcnVubmluZyBpdC4KCmBgYHtiYXNoIGVuZ2luZS5vcHRzPSctaSd9CmNvbmRhIGFjdGl2YXRlIGVsc2EwMQpsc2FfY29tcHV0ZSBTUE9UL3Nwb3RDbHJNdHgudHN2IFNQT1Qvc3BvdENsck10eC5vdXQuY3N2IC1kIDEgLW0gMCAtcCB0aGVvIC14IDEwMDAgLWIgMCAtciAxIC1zIDExOSAtbiBub25lCmBgYAoKQW5kIG5vdyB3ZSBoYXZlIGEgc3VwZXIgY3J5cHRpYyBlcnJvci4KCmBgYHtiYXNoIGVuZ2luZS5vcHRzPSctaSd9CmNvbmRhIGFjdGl2YXRlIGVsc2EwMQpsc2FfY29tcHV0ZSAtaApgYGAKCg==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiTmV0d29ya1NjaWVuY2UgRXh0ZW5kZWQgTG9jYWwgU2ltaWxhcml0eSBBbmFseXNpcyAoZUxTQSkiCmF1dGhvcjogIkphY29iIENyYW0iCmRhdGU6ICI1LzI3LzIwMjAiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KIyBHZXR0aW5nIFJlYWR5CkV2ZXJ5IHRpbWUgSSBldmVyIHJ1biBlbHNhLCBJIGxvb2sgYXQgdGhlIGhlbHAgZmlsZS4KCmBgYHtiYXNoIGVuZ2luZS5vcHRzPSctaSd9CmNvbmRhIGFjdGl2YXRlIGVsc2EwMQpsc2FfY29tcHV0ZSAtaApgYGAKCgpgYGB7cn0KYXJpc2EgPC0gcmVhZC5kZWxpbSgiU1BPVC9zcG90Q2xyTXR4LnRzdiIsIHNlcCA9ICJcdCIpCmRpbShhcmlzYSkKYGBgCgojIEV4YW1wbGUgUnVuCk9uZSB0aGluZyB5b3UgbmVlZCB0byBrbm93IGlzIHRoZSBudW1iZXIgb2YgY29sdW1ucywgaXRzIDExOS4gSGVyZSdzIGFuIGV4YW1wbGUgb2Ygd29ya2luZyBjb2RlLCBsZXRzIHJ1biBpdCBhbmQgbG9vayBhdCB3aGF0IGl0IGRvZXMuIAoKYGBge2Jhc2ggZW5naW5lLm9wdHM9Jy1pJ30KY29uZGEgYWN0aXZhdGUgZWxzYTAxCmxzYV9jb21wdXRlIFNQT1Qvc3BvdENsck10eC50c3YgU1BPVC9zcG90Q2xyTXR4Lm91dC50c3YgLWQgMSAtbSAwIC1wIHRoZW8gLXggMTAwMCAtYiAwIC1yIDEgLXMgMTE5IC1uIG5vbmUKYGBgCgpgZGF0YUZpbGVgIGlzIG91ciBpbnB1dDogYFNQT1Qvc3BvdENsck10eC50c3ZgCmByZXN1bHRGaWxlYCBpcyBvdXIgb3V0cHV0OiBgU1BPVC9zcG90Q2xyTXR4Lm91dC50c3ZgCgpJIHB1dCB0aGVzZSBpbiBhcyB0aGUgZmlyc3QgdHdvIGFyZ3VtZW50cwoKYC1kYCBUaGUgKmRlbGF5KiB0aGF0IGlzIGhvdyBtdWNoIGRvIEkgd2FudCB0byBhbGxvdyB0aGluZ3MgdG8gbGFnLiBGb3IgYSBtb250aGx5IGRhdGEgc2V0LCBJIHVzZSBvbmUuIFRoYXQgaXMsIEkgYW0gaW50cmVzdGVkIGluIGNhc2VzIHdoZXJlIG9uZSB2YXJpYWJsZSBjaGFuZ2VzLCBhbmQgdGhlbiBhbm90aGVyIHJlc3BvbmRzIG9uZSBtb250aCBsYXRlci4KCmAtbWAgSG93IG1hbnkgdGltZXMgZG9lcyBhIHNwZWNpZXMgaGF2ZSB0byBzaG93IHVwIGluIHRoZSBkYXRhIHNldCBmb3IgdXMgdG8gbm90IGhhdmUgdG8gdGhyb3cgaXQgb3V0LiBXZSd2ZSBhbHJlYWR5IGRvbmUgZmlsdGVyaW5nIGluIGBSYCBzbyBJJ20gZ29pbmcgdG8gdGVsbCBpdCBub3QgdG8gdG9zcyBhbnl0aGluZyBieSBzZXR0aW5nIHRoaXMgdG8gYDBgCgpgLXBgIFRoaXMgaXMgdGhlIG1ldGhvZCB0aGF0IGl0IHVzZXMgdG8gY29tcHV0ZSB0aGUgKnAqLXZhbHVlIGZvciBqdXN0IHRoZSAqTFMqIHNjb3JlLiBTbyBpZiB5b3UgYXJlIGludGVyZXN0ZWQgaW4gImdsb2JhbCIgYXNzb2NpYXRpb25zLCBlZyBzcGVhcm1hbiBvciBwZWFyc29uIGFuZCBub3QgKkxTKiwgeW91IHdhbnQgdGhlIGZhc3Rlc3Qgb25lLCB3aGljaCBpcyB0aGVvLiBJZiB5b3UgZG8gY2FyZSBhYm91dCAqTFMqIHNjb3JlLCB5b3Ugc2hvdWxkIHJ1biB3aXRoIHRoZW8gZmlyc3QgdG8gbWFrZSBzdXJlIHRoaW5ncyB3b3JrLiBUaGlzIG1lYW5zIHRoYXQgdGhlIHAtdmFsdWUgaXMgZXN0ZW1hdGVkIHdpdGggYW4gZXF1YXRpb24sIHJhdGhlciB0aGFuIGFjdHVhbCBwZXJtdXRhdGlvbiB0ZXN0aW5nLiBTaW5jZSB0aGVvIGNhbiBiZSB3cm9uZywgeW91IHByb2JhYmx5IGRvbid0IHdhbnQgdG8gYmV0IHRoZSBmYXJtIG9uIGl0LiBgcGVybWAgaXMgc2xvd2lzdCBhbmQgcGVybXV0ZXMgZXZlcnl0aW5nIGAteGAgdGltZXMuIGBtaXhgIGRvZXMgKnRoZW8qIHVubGVzcyB0aGUgcGVybXV0YXRpb24gZmFsbHMgbmVhciBzb21lIGRlY3RlY3Rpb24gdGhyZXNob2xkIGluIHdoaWNoIGNhc2UgaXQgcnVucyAqcGVybSoKCmAteGAgSG93IG1hbnkgcGVybXV0YXRpb25zIHRvIHVzZSBpZiB5b3Ugc3BlY2lmeSBgLXAgdGhlb2Agb3IgYC1wIG1peGAuCgpgLWJgIFRoaXMgaXMgcmVsZXZhbnQgaWYgeW91IGhhdmUgcmVwbGljYXRlcy4gV2UgZG9uJ3Qgc28gSSBzZXQgaXQgdG8gYDBgLiAKCmAtcmAgVGhlIG51bWJlciBvZiByZXBsaWNhdGVzIHlvdSBoYXZlLiBXZSBkb24ndCBoYXZlIHJlcGxpY2F0ZXMgc28gSSBzZXQgaXQgdG8gYDFgCgpgLXNgIFRoZSBudW1iZXIgb2Ygc2FtcGxlcyAodGltZXBvaW50cykgdGhhdCB5b3UgaGF2ZS4gYDExOWAgaW4gb3VyIGNhc2UuIFNlZSBhYm92ZS4KCmAtbmAgSG93IGRvIHlvdSB3YW50IHRvIG5vcm1hbGl6ZSB0aGUgZGF0YS4gV2UgYWxyZWFkeSBkaWQgYW5kIHRoZW4gd2UgYGNscmAgdHJhbnNmb3JtZWQgaXQgYW5kIHdlIGRvbid0IHdhbnQgdG8gbWVzcyB3aXRoIHRoYXQgc28gSSBzZXQgaXQgdG8gbm9uZS4KCkFuZCB0aGF0cyBpdC4KCiMgT3V0cHV0IGZpbGUuCkxldHMgbG9vayBhdCB0aGUgb3V0cHV0IGZpbGUgYW5kIHRhbGsgYWJvdXQgd2hhdCBlYWNoIHRoaW5nIG1lYW5zLgoKCgoKCgoK</div>
 
 
 
