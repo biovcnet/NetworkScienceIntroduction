@@ -120,6 +120,16 @@ spotInterpMtx <- spotInterp2 %>%
 spotClrMtx <- clr(spotInterpMtx)
 ```
 
+# Saving out for eLSA
+For the lesson on eLSA, we need formatted data that we will export here. eLSA wants comma seperated values. It also wants a `#` sign in the upper left hand cell. Also, its particular about special characters in column names.
+
+```{r}
+# Write the matrix to csv. You can't use tidyverse's write_csv, which expects data frames (unless you first translated to data frame)
+cat("#, ", file = "SPOT/spotClrMtx.csv")
+thout <- write.table(spotClrMtx, "SPOT/spotClrMtx.tsv", quote = FALSE, sep = "\t", append = TRUE)
+# Then add a pound sign to the file
+```
+
 
 # Lags
 Ok, so with this dataset, we can do any of the things from the earlier lessons.
