@@ -1,0 +1,73 @@
+---
+title: "How to Install eLSA"
+output: html_notebook
+---
+
+How to install eLSA, the condas way. Which the author thinks is easier than any way in the eLSA readme.
+If you just run this whole thing, you'll have elsa working in a condas environment, and the files for elsa located in a directory just outide of this one
+
+A note. I'm showing you how to do this in an rstudio environment, which is a little buggy with bash.
+Below are bash code chunks, which I flag with `bash engine.opts='-i'`. This says the code below is run in its own "interactive" terminal session. I do this because if I don't do the engine.opts thing, it doesn't source my bash profile and it can't find a bunch of packages I need. In theory I can address this by instead running `bash engine.opts'-.l'`, but on my computer that doesn't work. One think you should also know is that each bash chunk is like opening a new terminal window and is independent, of the others. Thus, every time I need my condas environment, I re-source it. And I'm always navigating from the current working directory. You can do stuff in your own terminal (probably safer), but keep in mind that some of my steps here will then be redundant. 
+
+
+First, install either Anaconda or Miniconda
+https://docs.conda.io/en/latest/miniconda.html
+
+And also install `git`
+
+
+Then, you need to create a conda environment on your local computer
+
+```{bash engine.opts='-i'}
+pwd
+```
+
+
+```{bash engine.opts='-i'}
+conda create -n elsa01 python=2.7 numpy scipy gxx_linux-64 gfortran_linux-64 libgcc matplotlib --yes
+```
+
+
+And test if the environment was added
+
+```{bash engine.opts='-i'}
+conda env list
+```
+
+Then clone eLSA from bitbucket
+https://bitbucket.org/charade/elsa/src/master/
+
+```{bash engine.opts='-i'}
+git clone https://bitbucket.org/charade/elsa.git ../elsa
+```
+
+And cd to that file, wherever it is
+Then activate your conda environment
+and install elsa
+
+```{bash engine.opts='-i'}
+cd ../elsa
+conda activate elsa01
+python setup.py install
+```
+
+
+Then every time you want to use elsa, you need to make sure the correct conda path is activated.
+
+Lets run the main lsa_compute function
+
+```{bash engine.opts='-i'}
+conda activate elsa01
+lsa_compute -h
+```
+
+
+LSA has a few tests that it can run to make sure everything is working properly, lets run those
+They take a while. Sometimes best to just do overnight.
+
+```{bash engine.opts='-i'}
+cd ../elsa/test
+conda activate elsa01
+. test.sh
+```
+
