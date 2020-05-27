@@ -1,0 +1,36 @@
+---
+title: "NetworkScience Extended Local Similarity Analysis (eLSA)"
+author: "Jacob Cram"
+date: "5/27/2020"
+output: html_notebook
+---
+
+Every time I ever run elsa, I look at the help file.
+
+Here are some things to notice. You need to give it a datafile. We don't have any replicates in our datafile, thus "r" is going to be 1, and "s" is going to be our number of columns. So you'll have to count those somehow.
+
+```{r}
+arisa <- read.delim("SPOT/spotClrMtx.tsv", sep = "\t")
+dim(arisa)
+```
+
+Easiest and most relyable to just load into R. We have 119 time point and 21 OTUs, so `s = 21`
+also `-b` and `-t` also have do do with replicates, so we can set `-b` to `0`, and ignore `-t`
+
+`dataFile` is our input
+`resultFile` is our output
+
+Other things. We've alredy interpolated our NA values, so `-f` doesn't matter, but if we had a few months of NA values that would matter. We've also prefiltered our data but if we hadn't we would want to specify `-m` to tell it how often something had to show up. We can set it to zero to do no more filtering.  Let me just try running it.
+
+```{bash engine.opts='-i'}
+conda activate elsa01
+lsa_compute SPOT/spotClrMtx.tsv SPOT/spotClrMtx.out.csv -d 1 -m 0 -p theo -x 1000 -b 0 -r 1 -s 119 -n none
+```
+
+And now we have a super cryptic error.
+
+```{bash engine.opts='-i'}
+conda activate elsa01
+lsa_compute -h
+```
+
